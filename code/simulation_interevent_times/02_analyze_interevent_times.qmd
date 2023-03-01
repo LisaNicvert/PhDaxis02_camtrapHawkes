@@ -1,0 +1,483 @@
+---
+title: "Analyze inter-event times"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: html
+embed-resources: true
+editor: visual
+---
+
+This code analyzes inter-event times computed on data simulated with Hawkes processes.
+
+## Load libraries
+
+```{r, message = FALSE, output = FALSE}
+library(here)
+
+source(here("functions/functions_plot.R"))
+source(here("functions/functions_interevents.R"))
+source(here("functions/functions_eval.R"))
+
+library(dplyr)
+library(tidyr)
+```
+
+## Parameters
+
+```{r}
+# --- Data
+data_folder <- here("code/simulation_interevent_times/out/simu_interevents_cluster")
+pval_file <-  here("code/simulation_interevent_times/out/pval_precomputed.csv")
+
+# --- P-values
+adjustmethod <- "holm" # Correction for multiple testing
+alpha <- 0.05 # Significance threshold
+compute_pval <- TRUE # Compute pvalue or use pre-computed values?
+
+# --- To plot results for particular values
+Tmax_plot <- 500
+strength_plot <- 0.5
+rep_plot <- 2
+```
+
+## Import data
+
+```{r}
+# All files
+files <- list.files(data_folder, 
+                    full.names = FALSE, 
+                    recursive = FALSE)
+
+# Non-permuted data
+files_val <- grep(files, pattern = "^val", 
+                  value = TRUE)
+
+# Permuted data
+files_sim <- grep(files, pattern = "^sim", 
+                  value = TRUE)
+```
+
+### Check seeds
+
+Data was simulated using a seed: here we check that the seeds are unique across all files (through the files names which contain the seed used to generate data).
+
+```{r}
+ival <- strsplit(files_sim, split = "_")
+ival <- sapply(ival, 
+               function(i) {
+                 gsub(pattern = ".csv", replacement = "", 
+                      i[5], fixed = TRUE)
+               })
+ival <- sort(as.numeric(ival))
+
+if (any(duplicated(ival))) {
+  stop("There are duplicated seeds.")
+} else {
+  message("No duplicated seeds!")
+}
+```
+
+### Merge files
+
+```{r read_files}
+files_val <- file.path(data_folder, files_val)
+val_df <- do.call('rbind', lapply(files_val, read.csv))
+
+# This might take a while
+files_sim <- file.path(data_folder, files_sim)
+sim_df <- do.call('rbind', lapply(files_sim, read.csv))
+```
+
+```{r}
+# --- Extract data from raw files
+# Get unique species pairs
+species_pairs <- val_df %>% 
+  select(from, to) %>% unique()
+
+# Get unique Tmax values
+Tmax_list <-  val_df %>% 
+  select(Tmax) %>% unique()
+Tmax_list <- sort(Tmax_list$Tmax)
+
+# Get unique strength
+strength_list <-  val_df %>% 
+  select(strength) %>% unique()
+strength_list <- sort(strength_list$strength)
+
+# Get unique rep
+rep_list <- val_df %>% 
+  select(rep) %>% unique()
+rep_list <- sort(rep_list$rep)
+```
+
+## Compute p-values
+
+`compute_pval` is `r compute_pval` so the p-values will be will be `r ifelse(compute_pval, "computed", paste("loaded from the file", pval_file))`.
+
+```{r compute_pval, results='hide'}
+# get the p-value for each species pair for each repetition  
+# for each strength and Tmax
+
+# Initialize
+if (compute_pval) {
+  res_pval <- data.frame()
+
+  for (Tmaxi in Tmax_list) {
+    observed_val_Tmax <- val_df %>% 
+      filter(Tmax == Tmaxi)
+    sim_distri_Tmax <- sim_df %>% 
+      filter(Tmax == Tmaxi)
+    
+    for (strengthi in strength_list) {
+      print(paste("Tmax:", Tmaxi, "strength:", strengthi, "--------------"))
+      observed_val_strength <- observed_val_Tmax %>% 
+        filter(strength == strengthi)
+      sim_distri_strength <- sim_distri_Tmax %>% 
+        filter(strength == strengthi)
+      
+      for(r in rep_list){
+        # print(paste("Rep:", r))
+        observed_val_rep <- observed_val_strength %>% 
+          filter(rep == r)
+        sim_distri_rep <- sim_distri_strength %>% 
+          filter(rep == r)
+        
+        for(p in 1:nrow(species_pairs)) {
+          pair <- species_pairs[p,]
+          # Get observed percentage
+          observed_val <- observed_val_rep %>% 
+            filter(from == pair$from & to == pair$to)
+          obs <- observed_val$interval
+          
+          sim_distri <- sim_distri_rep %>% 
+            filter(from == pair$from & to == pair$to)
+          sim <- sim_distri$interval
+          
+          sim_median <- median(sim)
+          effect <- obs - sim_median 
+          # Effect > 0 : obs > sim -> avoidance
+          # Effect < 0 : obs < sim  -> attraction
+          
+          # Get sim + val
+          test <- c(obs, sim)
+          
+          # Compute p-value as the proportion of simu
+          # for which observed value is above/below
+          p1 <- sum(as.numeric(obs >= test))/length(test)
+          p2 <- sum(as.numeric(obs <= test))/length(test)
+          
+          # Choose min between p and 1-p
+          p <- min(p1, p2)
+          
+          res <- data.frame("from"= pair$from, 
+                            "to" = pair$to, 
+                            "pval" =  p,
+                            "rep" = r,
+                            "Tmax" = Tmaxi,
+                            "strength" = strengthi,
+                            "effect" = effect)
+          res_pval <- res_pval %>% bind_rows(res)
+        }
+      }
+    }
+  }
+  write.csv(res_pval,
+            pval_file,
+            row.names = FALSE)
+} else {
+  res_pval <- read.csv(pval_file)
+}
+```
+
+```{r}
+# --- Adjust p-value 
+# Adjust within each strength/Tmax/repetition
+res_pval <- res_pval %>% 
+  group_by(Tmax, strength, rep) %>%
+  mutate(p_adjusted = p.adjust(pval, adjustmethod),
+         .after = pval) %>%
+  ungroup()
+```
+
+### Prepare data for the evaluation
+
+```{r}
+# --- Create ground truth
+ground_truth <- species_pairs %>%
+  mutate(ground_truth = 0)
+ground_truth$ground_truth[ground_truth$from == "s1" & ground_truth$to == "s2"] <- 1
+ground_truth$ground_truth[ground_truth$from == "s2" & ground_truth$to == "s3"] <- 1
+ground_truth$ground_truth[ground_truth$from == "s2" & ground_truth$to == "s4"] <- 1
+
+res_pval <- res_pval %>% left_join(ground_truth, 
+                                   by = c("from", "to"))
+
+# --- Add effect direction
+res_pval <- res_pval %>%
+  mutate("direction" = ifelse(effect > 0,
+                              "segregation", "aggregation"), 
+         .before = effect)
+res_pval$direction <- factor(res_pval$direction)
+
+```
+
+```{r, results='hide'}
+# From the p-values, get the true positive/negative rate per repetition
+# Based on the rule "p-value < 0.05" with and without correction
+
+# Initialize
+perf_pval <- data.frame()
+perf_padj  <- data.frame()
+
+for (Tmaxi in Tmax_list) {
+  for (strengthi in strength_list) {
+    for(r in rep_list) {
+      tst <- res_pval %>% 
+        filter(Tmax == Tmaxi) %>%
+        filter(strength == strengthi) %>%
+        filter(rep == r)
+      
+      # Compute adjusted
+      TN_TP_padj <- compute_TN_TP(true = tst$ground_truth,
+                                  pval = tst$p_adjusted, 
+                                  alpha = alpha)
+
+      # Compute not adjusted
+      TN_TP_pval <- compute_TN_TP(true = tst$ground_truth,
+                                  pval = tst$pval, 
+                                  alpha = alpha)
+
+      # Add parameters to results vector
+      row <- c("Tmax" = Tmaxi, "strength" = strengthi)
+      
+      row_pval <- c(row, TN_TP_pval)
+      row_padj <- c(row, TN_TP_padj)
+      
+      # Merge all results
+      perf_pval <- perf_pval %>% bind_rows(row_pval)
+      perf_padj <- perf_padj %>% bind_rows(row_padj)
+    }
+  }
+}
+```
+
+## Plot true positive and true negative rates
+
+### Raw p-value
+
+```{r, fig.width = 10}
+# --- Format data
+perf_pval <- format_data_perf(perf_pval, level = alpha)
+
+# --- Plot
+plot_perf(perf_pval,  
+          psize = 1.1,
+          xaxis = "Tmax") +
+  xlab(paste("Trapping days per camera (× 30 cameras)")) +
+  facet_grid(col = vars(strength),
+             labeller = label_both) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Adjusted p-value
+
+```{r, fig.width = 10}
+# --- Format data
+perf_padj <- format_data_perf(perf_padj, level = alpha)
+
+# --- Plot
+plot_perf(perf_padj,  
+          psize = 1.1,
+          xaxis = "Tmax") +
+  xlab(paste("Trapping days per camera (× 30 cameras)")) +
+  facet_grid(col = vars(strength),
+             labeller = label_both) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Save figure
+ggsave(here("code/simulation_interevent_times/figures/simu_inter_events_padjusted.jpeg"),
+       width = 18, height = 7, dpi = 600, units = "cm", bg = "white")
+```
+
+## Plot bias
+
+```{r}
+# --- Compute number of times each interaction is significant
+inference_bias <- res_pval %>%
+  mutate(bias_adjusted = as.numeric(p_adjusted <= alpha),
+         bias = as.numeric(pval <= alpha))
+```
+
+### Raw p-value
+
+```{r}
+inference_bias_pval <- inference_bias %>%
+    group_by(from, to) %>%
+    summarize(valsum = sum(bias),
+              valprop = valsum/n(),
+              .groups = "drop")
+
+plot_bias(inference_bias_pval, textsize = 16) +
+  xlab("To") +
+  ylab("From")
+```
+
+### Adjusted p-value
+
+```{r}
+inference_bias_padj <- inference_bias %>%
+    group_by(from, to) %>%
+    summarize(valsum = sum(bias_adjusted),
+              valprop = valsum/n(),
+              .groups = "drop")
+
+plot_bias(inference_bias_padj, textsize = 16) +
+  xlab("To") +
+  ylab("From")
+# save figure
+ggsave(here("code/simulation_interevent_times/figures/bias_padjusted.jpeg"),
+       width = 12, height = 10, dpi = 600, units = "cm", bg = "white")
+```
+
+## Check inferred parameters values
+
+In this section, we choose one repetition of a simulation performed in specific conditions and plot the observed inter-event times compared to the distribution obtained with randomized data.
+
+Here, we choose the following conditions:
+
+-   $T_{max} =$ `r Tmax_plot`
+-   The interaction strength is `r strength_plot`
+
+```{r}
+# --- Format data
+# Simu
+sim_plot <- sim_df %>% 
+  filter(Tmax == Tmax_plot,
+         strength == strength_plot,
+         rep == rep_plot)
+
+sim_plot <- sim_plot %>%
+  group_by(from, to) %>%
+  mutate(median = median(interval))
+
+# True values
+val_plot <- val_df %>% 
+  filter(Tmax == Tmax_plot,
+         strength == strength_plot,
+         rep == rep_plot)
+
+# Add p-values
+val_plot <- val_plot %>% 
+  left_join(res_pval, 
+            by = c("from", "to", "rep", "Tmax", "strength"))
+
+# Graphic parameter
+alpha_transparency <- 0.3 # value of alpha for non-significant inter-event times
+```
+
+### Raw p-value
+
+```{r, fig.width=7, fig.height=5}
+# --- Format data
+val_pval <- val_plot %>%
+  mutate(alpha_level = alpha) %>%
+  mutate(transparency = ifelse(pval < alpha_level, 
+                               1, alpha_transparency))
+val_pval <- val_pval %>% mutate(plab = round(pval, 3))
+
+
+# --- Plot
+ggplot() +
+  # Plot histogram
+  geom_histogram(data = sim_plot,
+                 aes(x = interval),
+                 fill = "darkgrey") +
+  # Plot observed percentage and write its value
+  geom_text(aes(x = interval, y = Inf, 
+                label = round(interval, 2),
+                col = direction,
+                alpha = transparency),
+                hjust = 0, vjust = 1,
+            data = val_pval) +
+  geom_vline(aes(xintercept = interval,
+                 col = direction,
+                 alpha = transparency),
+             data = val_pval) +
+  # Plot the median of the distri
+  geom_vline(aes(xintercept = median), 
+             linetype = "dashed",
+             data = sim_plot) +
+  # Write p-value
+  geom_label(aes(x=Inf, y =-Inf,
+                 label = plab),
+             fontface = 'italic',
+             hjust=1, vjust = 0, 
+             data = val_pval) +
+  # Formatting legends
+  scale_alpha_continuous(range = c(alpha_transparency, 1)) + 
+  guides(alpha = "none") +
+  # Facetting
+  facet_grid(from ~ to, switch = "y", scales = "free_y") +
+  # Labels and title
+  ylab("Count") + xlab("Median inter-event times") +
+  # Theme
+  theme_linedraw() +
+  theme(legend.position = "bottom",
+        strip.background = element_rect(fill = "white"),
+        strip.text = element_text(colour = "black"))
+```
+
+On this plot, the non-significant inter-event times are transparent.
+
+### Adjusted p-value
+
+```{r, fig.width=7, fig.height=5}
+val_padj <- val_plot %>%
+  mutate(alpha_level = alpha) %>%
+  mutate(transparency = ifelse(p_adjusted <= alpha_level, 
+                               1, alpha_transparency))
+val_padj <- val_padj %>% mutate(plab = round(p_adjusted, 3))
+
+# --- Plot
+ggplot() +
+  # Plot histogram
+  geom_histogram(data = sim_plot,
+                 aes(x = interval),
+                 fill = "darkgrey") +
+  # Plot observed percentage and write its value
+  geom_text(aes(x = interval, y = Inf, 
+                label = round(interval, 2),
+                col = direction,
+                alpha = transparency),
+                hjust = 0, vjust = 1,
+            data = val_padj) +
+  geom_vline(aes(xintercept = interval,
+                 col = direction,
+                 alpha = transparency),
+             data = val_padj) +
+  # Plot the median of the distri
+  geom_vline(aes(xintercept = median), 
+             linetype = "dashed",
+             data = sim_plot) +
+  # Write p-value
+  geom_label(aes(x=Inf, y =-Inf,
+                 label = plab),
+             fontface = 'italic',
+             hjust=1, vjust = 0, 
+             data = val_padj) +
+  # Formatting legends
+  scale_alpha_continuous(range = c(alpha_transparency, 1)) + 
+  guides(alpha = "none") +
+  # Facetting
+  facet_grid(from ~ to, switch = "y", scales = "free_y") +
+  # Labels and title
+  ylab("Count") + xlab("Median inter-event times") +
+  # Theme
+  theme_linedraw() +
+  theme(legend.position = "bottom",
+        strip.background = element_rect(fill = "white"),
+        strip.text = element_text(colour = "black"))
+```
+
+On this plot, the non-significant inter-event times are transparent.
