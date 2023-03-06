@@ -1,6 +1,6 @@
 # Sources for the pictures
 
-All images were retrieved on Phylopic.
+All images were retrieved from [Phylopic](https://www.phylopic.org/):
 
 + [Impala](http://www.phylopic.org/image/e07d1491-1d85-4c47-9f7d-075ea57bf0c5/)
 + [Kudu](http://www.phylopic.org/image/e590147d-93c5-4d81-bbbf-bd1410cf8135/)
