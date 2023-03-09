@@ -1,0 +1,452 @@
+---
+title: "Simulation and inference with a Hawkes process"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: html
+embed-resources: true
+editor: visual
+---
+
+This code simulates data under a Hawkes process and then infers the interactions functions from the simulated data.
+
+## Load libraries
+
+```{r, message = FALSE, output = FALSE}
+# Load functions from main folder
+devtools::load_all()
+
+# Load additional packages
+packages <- c("here", "foreach", "doParallel",
+              "gridExtra", "UnitEvents", 
+              "tidyr", "tibble", "dplyr",
+              "igraph", "ggplot2")
+base::lapply(packages, require)
+```
+
+## Parallelization
+
+```{r}
+registerDoParallel()
+```
+
+The code will run on `r getDoParWorkers()` core(s).
+
+## Parameters
+
+```{r}
+# Network params ------
+Ncomp <- 1 # compartments in UnitEvents model
+t <- 0.5 # half life for the exponential interaction function
+strength <- c(0.01, 0.1, 0.2, 0.5, 1) # interaction function strength
+
+duration_days <- 2 # interaction function support
+spont <- 0.1 # background rate
+
+nspecies <- 5 # number of interacting species
+
+# Simulation params -----
+perform_simu <- TRUE # perform the simulation or not?
+# Since running the simulation might be quite long (around 2 hours),
+# a RDS file with the realized simulations is also provided.
+
+n_cameras <- 30 # number of cameras
+Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
+
+nrep_each <- 30 # repeat each simulation x times
+
+# Inference params -----
+perform_inference <- TRUE # perform the inference or not?
+# Since running the inference takes a few minutes, a RDS fils
+# with the realized simulations is also provided.
+
+k <- 12 # number of bins for the inference
+delta <- 4/24 # width of a bin (in days)
+gamma <- c(0.3, 0.5, 1) # values for penalization gamma 
+scale <- 10e7 # UnitEvents scale parameter
+
+# Eval params -----
+est <- "BVL" # estimator to use for the inference
+level <- 0.05 # confidence level for the plot
+
+# Files where results are stored -----
+simu_file <- here("outputs/03_simulation_hawkes/simulationsBVL.rds")
+inference_file <- here("outputs/03_simulation_hawkes/inferenceBVL.rds")
+
+# Select a model name to plot in the end
+infer_test_name <- "500_1_0.3"
+
+# --- Figures
+figures_path <- here("figures/03_simulation_hawkes")
+```
+
+```{r}
+## Auto-params -----
+trapping_days <- Tmax*n_cameras # Total trapping days on all cameras
+```
+
+## Create true models
+
+```{r model_parameters}
+# Times vector
+times <- seq(0, duration_days, length.out = 200)
+
+# Create species names
+spp_names <- paste0("s", 1:nspecies)
+
+# Empty interaction matrix
+interac <- create_interactions(spp_names = spp_names, 
+                               times = times)
+
+# Background rates
+spont_rates <- create_spont_rates(spont, 
+                                  spp_names)
+```
+
+### Interaction functions
+
+```{r}
+# Get plot limits to plot the function
+ymin <- ifelse(min(strength) < 0, min(strength), 0)
+ymax <- ifelse(max(strength) > 0, max(strength), 0)
+
+ylim <- c(ymin, ymax)
+
+# Create functions for different interaction strength
+functions_list <- list()
+gglist <- list()
+for(s in strength){
+  # Create function
+  fs <- create_funcshape("exp", times = times, strength = s)
+  fs[length(fs)] <- 0
+  
+  func <- matrix(data = c(times, fs),
+                 nrow = 2, byrow = TRUE)
+  
+  functions_list <- c(functions_list, list(func))
+  
+  # Prepare plot for  function
+  func_df <- as.data.frame(t(func))
+  colnames(func_df) <- c("t", "f")
+  
+  g <- ggplot(func_df) + geom_step(aes(x = t, y = f)) +
+    ggtitle(paste("Strength:", s)) +
+    theme_linedraw() +
+    xlab("Time (days)") +
+    ylab(expression(paste("Intensity (", day^{-1}, ")"))) + 
+    ylim(ylim)
+  gglist <- c(gglist, list(g))
+}
+
+names(functions_list) <- strength
+```
+
+Below are the interaction functions for the different simulation models:
+
+```{r plot_interaction_functions, fig.width=8, fig.height=9}
+grid.arrange(grobs = gglist, top = "Interaction functions")
+```
+
+### Define the interaction network
+
+```{r}
+models_list <- list()
+for(i in 1:length(functions_list)){
+  func <- functions_list[[i]]
+  strength_names <- names(functions_list)[i]
+  
+  # Modify nullmodel where needed
+  interac[2,1,1][[1]] <- func
+  interac[3,2,1][[1]] <- func
+  interac[4,2,1][[1]] <- func
+  
+  # Store model in UE format
+  model <- list("S" = spont_rates, 
+                "I" = interac)
+  models_list <- c(models_list, list(model))
+  names(models_list)[length(models_list)] <- strength_names
+}
+
+spp_names <- colnames(models_list[[1]]$I)
+g <- ue_to_graph(models_list[[1]], neurnames = spp_names)
+```
+
+Below is the connectivity graph used for all models:
+
+```{r plot_connectivity_graph}
+lay <- layout_as_tree(g)
+plot_graph(g,
+           layout = lay,
+           textsize = 6, 
+           s = 12) + 
+  ggtitle("True interaction network")
+```
+
+## Perform simulations
+
+`perform_simu` is `r perform_simu` so the simulations will be `r ifelse(perform_simu, "performed", paste("loaded from the file", simu_file))`.
+
+```{r perform_simu}
+dfsim <- data.frame()
+
+# Prepare model parameters -----
+# Get strength
+strength_list <- as.numeric(gsub(pattern = "^(.+)(:?-.+)", 
+                                 x = names(models_list), 
+                                 replacement =  "\\1"))
+
+# Perform simulations in a foreach loop -----
+if(perform_simu) {
+  
+  # Measure elapsed time
+  rtime <- system.time({
+    # Perform simulations in parallel
+    simul_list <- 
+      foreach (modname = names(models_list),
+               strength = strength_list,
+               .combine = "c") %:% 
+      foreach(Tm = Tmax, .combine = "c") %dopar% { 
+        
+        # Get model
+        model <- models_list[[modname]]
+        
+        # Create BoxComp (only one comportment)
+        BoxComp <- array(c(list()), c(n_cameras,1))
+        
+        for (j in 1:n_cameras){
+          BoxComp[[j]] = matrix(c(0, Tm, 1), nrow=3)
+        }
+        
+        # Repeat each simu x times
+        rep_list <- mclapply(X = 1:nrep_each, 
+                             FUN = function(i) Hawkesmulti(Ntrial = n_cameras, 
+                                                           delay = 0, 
+                                                           BoxComp = BoxComp, 
+                                                           spontComp = model$S, 
+                                                           interacComp = model$I))
+        
+        # Store results in a list
+        rep_list <- lapply(rep_list, 
+                           FUN = function(r) name_dataneur(r, 
+                                                           species_names = spp_names))
+        
+        # Store final data format
+        rep_final <- list(simul = rep_list,
+                          simul_parameters = list(modelname = modname,
+                                                  strength = strength,
+                                                  Tmax = Tm))
+        
+        list(rep_final)
+      }
+    
+    simnames <- sapply(simul_list,
+                       function(s){
+                         paste(s$simul_parameters$modelname,
+                               s$simul_parameters$Tmax, sep = "_")})
+    names(simul_list) <- simnames
+  })
+  message("Output of system.time:")
+  print(rtime)
+  
+  message("The simulation took ", 
+          round(rtime[3]/60, 2),
+          " minutes to run.")
+  
+  saveRDS(simul_list,
+          simu_file)
+} else {
+  simul_list <- readRDS(simu_file)
+}
+```
+
+## Perform inference
+
+`perform_inference` is `r perform_inference` so the inference will be `r ifelse(perform_inference, "performed", paste("loaded from the file", inference_file))`.
+
+```{r perform_inference}
+if (perform_inference) {
+  rtime <- system.time({
+    infer_list <-
+      foreach(i = 1:length(simul_list), .combine = 'c') %:%
+      foreach(gamma_i = gamma, .combine = 'c') %dopar%{
+        # Get simu
+        cond <- simul_list[[i]]
+        
+        # Get actual data
+        cond_dat <- cond$simul
+        
+        # Reinfer model for each repetition
+        rep_list <- mclapply(1:length(cond_dat),
+                             FUN = function(j){
+                               reinfer(cond_dat[[j]], k = k, 
+                                       delta = delta,
+                                       gamma = gamma_i, scale = scale, 
+                                       Ntrial = n_cameras)
+                             })
+        # If the code above encounters an error, try to restart R
+        # (the error might be caused by NeuroCorr_SetParallel)
+        
+        # Format data
+        rep_list <- lapply(rep_list, 
+                           FUN = function(inf){
+                             unpack_inf(inf, species_names = spp_names, 
+                                        k = k, delta = delta)})
+        
+        # Add model parameters to data
+        rep_final <- list(reinfer = rep_list,
+                          reinfer_parameters = list(Tmax = cond$simul_parameters$Tmax,
+                                                    strength =cond$simul_parameters$strength,
+                                                    modelname = cond$simul_parameters$modelname,
+                                                    gamma = gamma_i))
+        return(list(rep_final))
+      }
+  })
+  message("Output of system.time:")
+  print(rtime)
+  
+  message("The inference took " ,
+          round(rtime[3]/60, 2), 
+          " minutes to run.")
+
+  # --- Prepare names vector
+  infernames <- sapply(infer_list,
+                       function(i){paste(i$reinfer_parameters$Tmax, 
+                                         i$reinfer_parameters$strength,
+                                         i$reinfer_parameters$gamma, sep = "_")})
+  names(infer_list) <- infernames
+  
+  saveRDS(infer_list,
+          inference_file)
+} else {
+  infer_list <- readRDS(inference_file)
+}
+```
+
+## Evaluation of the inference
+
+### Format the inference data
+
+```{r}
+# Format inference data ---
+inference_perf <- data.frame()
+inference_bias <- data.frame()
+
+for(infer_name in names(infer_list)){
+  cond <- infer_list[[infer_name]]$reinfer
+  
+  # Get true model
+  mtrue_name <- infer_list[[infer_name]]$reinfer_parameters$modelname
+  mtrue <- models_list[[mtrue_name]]
+  
+  # Get TN/TP
+  dat <- compute_pos_neg_list(Msim_list = cond, 
+                              Mtrue = mtrue$I, 
+                              est = est)
+  
+  dat <- as.data.frame(dat)
+  params <- infer_list[[infer_name]]$reinfer_parameters
+  dat <- dat %>% mutate(Tmax = params$Tmax,
+                        strength = params$strength,
+                        gamma = params$gamma)
+  
+  inference_perf <- inference_perf %>% bind_rows(dat)
+  
+  # Get the number of times each interaction was infererred
+  sim_sum <- get_bins_sum_list(cond)
+  
+  sim_sum_df <- as.data.frame(sim_sum) %>%
+    rownames_to_column("to") %>%
+    pivot_longer(cols = 2:6,
+                 names_to = "from") %>%
+    select(from, to, value)
+  
+  sim_sum_df <- sim_sum_df %>% mutate(Tmax = params$Tmax,
+                                      strength = params$strength,
+                                      gamma = params$gamma)
+  
+  inference_bias <- inference_bias %>% bind_rows(sim_sum_df)
+}
+
+inference_perf <- format_data_perf(d = inference_perf, 
+                                   level = level)
+
+# Format to factors for facetting variables
+inference_perf$gamma <- factor(inference_perf$gamma,
+                               levels = sort(unique(inference_perf$gamma)))
+
+inference_perf$strength <- factor(abs(inference_perf$strength),
+                                  levels = sort(unique(abs(inference_perf$strength))))
+
+inference_perf$trapping_days <- inference_perf$Tmax*n_cameras
+```
+
+### Plot true positive and true negative rates
+
+```{r plot_performance, fig.width=9, fig.height=6}
+# Plot performance -----
+plot_perf(inference_perf,
+          psize = 1.1,
+          xaxis = "Tmax") +
+  xlab(paste("Trapping days per camera (×", n_cameras, "cameras)")) +
+  facet_grid(cols = vars(strength),
+             rows = vars(gamma), labeller = label_both) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Export plot
+ggsave(file.path(figures_path, "simu_gamma_choice.jpeg"),
+       width = 18, height = 12, dpi = 600, units = "cm", bg = "white")
+```
+
+### Plot bias
+
+```{r plot_bias}
+inference_bias_plot <- inference_bias %>%
+  # filter(gamma == 0.5) %>%
+  group_by(from, to) %>%
+  summarize(valsum = sum(value),
+            nrep = n(),
+            valprop =  valsum/(n()*nrep_each), 
+            .groups = "drop")
+
+plot_bias(inference_bias_plot, textsize = 16) +
+  xlab("To") +
+  ylab("From")
+
+ggsave(file.path(figures_path, "bias_gamma.jpeg"),
+       width = 12, height = 10, dpi = 600, units = "cm", bg = "white")
+```
+
+### Check inferred parameters values
+
+```{r}
+inf_test <- infer_list[[infer_test_name]]
+```
+
+To see if the inferred parameters ($n =$ `r nrep_each` repetitions) have plausible values, we plot the inferred interaction functions and background rates:
+
+-   for the model with an interaction function of strength $s =$ `r inf_test$reinfer_parameters$strength` (and a background rate $r =$ `r spont`)
+-   for the inference with a penalization parameter $\gamma =$ `r inf_test$reinfer_parameters$gamma`
+
+```{r plot_parameters}
+res <- get_models_df(inferred_models = inf_test, 
+                     models = models_list,
+                     est = est)
+
+plot_interactions_simu(df = res)
+
+plot_background_rate_simu(df = res) +
+  ylab("Background rate") +
+  xlab("Species") +
+  ylim(0, max(res$spont))
+```
+
+We can also plot the parameters inferred for any single repetition:
+
+```{r plot_parameters_one_rep}
+df_plot <- inf_test$reinfer[[1]]$BVL
+df_plot <- ue_model_to_df(df_plot)
+
+plot_interactions(df_plot, timestep = 0.5)
+plot_background_rate(df_plot) + xlab("Species") +
+  ylim(0, max(df_plot$spont))
+```

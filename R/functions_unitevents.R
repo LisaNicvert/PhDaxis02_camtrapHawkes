@@ -420,7 +420,7 @@ compute_box <- function(d, use_stamps = FALSE){
   Ntrial <- as.numeric(length(unique(d$cameraID)))
   # --- Summarise data
   Tmax.df <- d %>% group_by(cameraID) %>% 
-    summarise(Tmin = min(stamp),
+    summarize(Tmin = min(stamp),
               Tmax = max(stamp)) %>%
     arrange(cameraID) # because in the matrix is in that order
   
@@ -462,7 +462,7 @@ get_ids <- function(df, delete_missing_species = FALSE){
     # which are not seen at all sites
     sites_count <- length(unique(df$cameraID))
     filtered <- df %>% group_by(species) %>% 
-      summarise(n_sites = length(unique(cameraID)))
+      summarize(n_sites = length(unique(cameraID)))
     spp <- filtered %>% filter(n_sites == sites_count) # get only species present on all 4 cameras
     df_filtered <- df %>% filter(species %in% spp$species)
   }
@@ -625,7 +625,7 @@ reinfer <- function(M,
   # Compute Tmax for each camera for the boxes later
   d <- ue_to_df(M)
   Tmax.df <- d %>% group_by(camera) %>% 
-    summarise(Tmax = max(stamp)) %>%
+    summarize(Tmax = max(stamp)) %>%
     arrange(camera) # because in the matrix is in that order
   Tmax <- Tmax.df$Tmax
   
@@ -691,7 +691,7 @@ df_to_matrix <- function(df){
   # Transform table: each set of times is stored as a list and its length
   # is stored in col len.
   prepmat <- prepmat %>% ungroup() %>% group_by(rowid) %>% 
-    summarise(times = list(sort(stamp)), 
+    summarize(times = list(sort(stamp)), 
               len = n())
   
   # Add missing row IDs (in case one species was not seen at one camera, because

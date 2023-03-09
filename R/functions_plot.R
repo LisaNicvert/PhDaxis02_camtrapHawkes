@@ -88,7 +88,7 @@ plot_interactions <- function(ue_df,
                                              face = "italic"),
           axis.title = element_text(size = textsize*1.5),
           title = element_text(size = textsize*1.5),
-          panel.spacing = unit(0.5, "lines"))
+          panel.spacing = grid::unit(0.5, "lines"))
   
   if (separate_self) {
     mar <- 0.2
@@ -109,7 +109,7 @@ plot_interactions <- function(ue_df,
             axis.text.y = element_text(size = textsize),
             axis.title = element_text(size = textsize*1.5),
             title = element_text(size = textsize*1.5),
-            panel.spacing = unit(0.5, "lines")) +
+            panel.spacing = grid::unit(0.5, "lines")) +
       ggtitle("Auto-interactions")
   }
   
@@ -228,7 +228,7 @@ plot_background_rate <- function(ue_df,
                                  nudge_label = 0.3) {
 
   spont_plot <- ue_df %>% group_by(to) %>%
-    summarise(spont = unique(spont)) %>%
+    summarize(spont = unique(spont)) %>%
     rename("species" = "to")
   
   g <- ggplot(spont_plot, aes(x = species, y = spont)) + 
@@ -250,7 +250,7 @@ plot_background_rate <- function(ue_df,
   }
   
   if(!all(is.na(silhouettes))){
-    g <- g + scale_x_discrete(labels = labs) +
+    g <- g + scale_x_discrete(labels = silhouettes) +
       theme(axis.text.x = element_markdown(color = "black",
                                            size = textsize))
   }
@@ -297,21 +297,21 @@ plot_graph <- function(g, layout = c(),
   if(is.na(nudge_x)){
     nudge_x <- rep(0, length(V(g)))
   }
-  ar <- grid::arrow(angle=30,length = unit(arrsize,"mm"),
-                    ends="last", type = "closed")
+  ar <- grid::arrow(angle = 30, length = grid::unit(arrsize,"mm"),
+                    ends = "last", type = "closed")
   alpha <- 1
   
   gr <- ggraph(g, layout = layout) + 
     geom_edge_fan(aes(width = weight),
                   arrow = ar,
-                  end_cap = circle(s/2.1,unit="mm"),
+                  end_cap = circle(s/2.1, unit = "mm"),
                   alpha = alpha, 
                   colour = coledges) +
     geom_edge_loop(aes(width = weight,
                        span = 90,
                        direction = 45), 
                    arrow = ar,
-                   end_cap = circle(s/2.2,unit="mm"),
+                   end_cap = circle(s/2.2, unit = "mm"),
                    alpha = alpha, colour = coledges)
   
   if(!all(is.null(colnodes))){ # not null
@@ -587,7 +587,7 @@ plot_interactions_simu <- function(df,
   simul <- simul %>% group_by(from, to, time)
   
   simul <- simul %>%
-    summarise(inf = quantile(excitefunc, level/2)[[1]],
+    summarize(inf = quantile(excitefunc, level/2)[[1]],
               sup = quantile(excitefunc, 1 - (level/2))[[1]],
               median = median(excitefunc),
               .groups = "drop")
@@ -650,7 +650,7 @@ plot_background_rate_simu <- function(df, alpha = 0.05, title = NA){
     select(to, spont, rep) %>%
     unique() %>% # get only one coeff per repetition (else repeated for each value of the filter function)
     group_by(to) %>%
-    summarise(spont_median = median(spont),
+    summarize(spont_median = median(spont),
               spont_upper = quantile(spont, 
                                      1-alpha/2),
               spont_lower = quantile(spont,

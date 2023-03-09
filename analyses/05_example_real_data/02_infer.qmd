@@ -1,0 +1,133 @@
+---
+title: "Infer interactions"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: html
+embed-resources: true
+editor: visual
+---
+
+This code infers the parameters of a Hawkes process between five animal species from camera trap data: impala *Aepyceros melampus*, greater kudu *Tragelaphus strepsiceros*, lion *Panthera leo*, blue wildebeest *Connochaetes taurinus* and Burchell's zebra *Equus quagga burchelli*.
+
+## Load libraries
+
+```{r, message = FALSE, output = FALSE}
+# Load functions from main folder
+devtools::load_all()
+
+packages <- c("here", "lubridate", "UnitEvents",
+              "ggplot2")
+base::lapply(packages, require)
+
+```
+
+## Parameters
+
+```{r}
+# --- Inference parameters
+dhours <- 6
+ndays <- 1.5
+gamma <- 0.5
+scale <- 10e7
+estimator <- "BVL"
+
+# --- Silhouettes path
+silhouettes_path <- here("data/species_silhouettes/")
+silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path, 
+                          "impala.png'", " height='20'/>", 
+                          "<br>*impala*"),
+                      kudu = paste0("<img src='", silhouettes_path, 
+                                    "kudu.png'", " height='20'/>", 
+                                    "<br>*kudu*"),
+                      lion = paste0("<img src='", silhouettes_path, 
+                                    "lion.png'", " height='20'/>", 
+                                    "<br>*lion*"),
+                      wildebeestblue = paste0("<img src='", silhouettes_path, 
+                                              "wildebeest.png'", " height='20'/>",
+                                              "<br>*wildebeest*"),
+                      zebraburchells = paste0("<img src='", silhouettes_path, 
+                                              "zebra.png'", " height='20'/>",
+                                              "<br>*zebra*"))
+
+# --- Figures
+figures_path <- here("figures/05_example_real_data")
+```
+
+## Read data
+
+```{r}
+dat <- read.csv(here("outputs/05_example_real_data/cleaned_data.csv"))
+
+# Format datetimes
+fmt <- "%Y-%m-%d %H:%M:%S"
+dat$datetime <- as.POSIXct(dat$datetime, format = fmt)
+dat$datetime <- force_tz(dat$datetime, tz = "Etc/GMT-2")
+
+```
+
+## Infer
+
+```{r, results='hide'}
+# --- get alphabetical species order 
+spp_names <- sort(unique(dat$snapshotName))
+
+# --- Get k and delta
+delta <- dhours/24 # delta in days
+k <- round(ndays/delta, 0) # k from delta and dmax
+
+# --- Infer
+inf <- infer(dat, 
+             k = k, delta = delta,
+             gamma = gamma, scale = scale)
+# If the error:
+# Erreur dans NeuroCorr_SetParallel(threads) : 
+#   impossible de trouver la fonction "NeuroCorr_SetParallel"
+# appears, restart R, re-load packages and re-run
+```
+
+### Plot interactions
+
+```{r interactions, fig.width=8, fig.height=8}
+# --- Format inferred model
+u_inf <- unpack_inf(inf, 
+                    species_names = spp_names, 
+                    k = k, delta = delta)
+
+
+plt_ue <- ue_model_to_df(u_inf[[estimator]])
+
+# --- Plot
+plot_interactions(plt_ue,
+                  scale = "hours", 
+                  silhouettes = silhouettes_labs,
+                  textsize = 12,
+                  timestep = 12,
+                  ystep = 0.2,
+                  separate_self = TRUE)
+
+# Export plot
+ggsave(file.path(figures_path, "interactions.jpeg"),
+       bg = "white",
+       width =  8, height = 8,
+       dpi = 600)
+```
+
+### Plot background rates
+
+```{r background_rates, fig.width=6, fig.height=4}
+# --- Plot
+plot_background_rate(ue_df = plt_ue,
+                     title = "Background rates",
+                     textsize = 9,
+                     write_label = TRUE,
+                     silhouettes = silhouettes_labs)
+
+# Export plot
+ggsave(file.path(figures_path, "background_rates.jpeg"),
+       bg = "white",
+       width =  6, height = 4,
+       dpi = 600,
+       device = grDevices::jpeg)
+```

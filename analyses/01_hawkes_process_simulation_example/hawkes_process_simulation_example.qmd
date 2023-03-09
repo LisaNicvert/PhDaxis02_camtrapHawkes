@@ -1,0 +1,195 @@
+---
+title: "Hawkes process simulation example"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: html
+embed-resources: true
+editor: visual
+---
+
+This code simulates data under a simple Hawkes process.
+
+## Load libraries
+
+```{r, message = FALSE, output = FALSE}
+# Load functions from main folder
+devtools::load_all()
+
+# Load additional packages
+packages <- c("here", "RColorBrewer", "igraph", "ggplot2",
+              "UnitEvents")
+base::lapply(packages, require)
+
+set.seed(5)
+```
+
+## Parameters
+
+```{r}
+# --- Model
+nspecies <- 5
+
+duration_days <- 2
+delta_hours <- 4
+
+spont <- 0.2
+strength_interac <- 1
+
+# --- Simulations
+Ntrial <- 1 # number of cameras to simulate
+Tmax <- 10
+
+# --- Colors
+# Color palette
+cols <- RColorBrewer::brewer.pal(nspecies, "Dark2")
+
+# Name palette
+spp_names <- paste0("s", 1:nspecies)
+names(cols) <- spp_names
+
+# --- Figures
+figures_path <- here("figures/01_hawkes_process_simulation_example")
+```
+
+## Create model
+
+```{r}
+# --- Create function
+# Function support
+times <- seq(0, duration_days, by = delta_hours/24)
+
+# Function
+fs <- create_funcshape("exp", 
+                       times = times, 
+                       t = .5,
+                       strength = strength_interac)
+fs[length(fs)] <- 0 # set last value to zero
+
+function_df <- data.frame(times, fs)
+
+# --- Create background rates
+spont_rates <- create_spont_rates(spont, 
+                                  spp_names)
+
+# --- Create interaction matrix
+interac <- create_interactions(spp_names = spp_names, 
+                               times = times)
+
+# Modify interaction matrix where needed
+# Create df with function and times
+func <- matrix(data = c(times, fs),
+               nrow = 2, byrow = TRUE)
+
+interac[2,1,1][[1]] <- func # 1 -> 2
+interac[3,2,1][[1]] <- func # 2 -> 3
+interac[4,2,1][[1]] <- func # 3 -> 4
+
+# --- Create model object
+func <- matrix(data = c(times, fs),
+               nrow = 2, byrow = TRUE)
+model <- list("S" = spont_rates, 
+              "I" = interac)
+
+```
+
+### Plot interaction function
+
+```{r interaction_function, fig.width=8, fig.height=6}
+ggplot(function_df) + 
+  geom_step(aes(x = times, y = fs), linewidth = 0.8) +
+  theme_minimal() +
+  xlab("Delay between j and i (days)") +
+  theme_linedraw() +
+  theme(axis.title = element_text(size = 11),
+        axis.title.y = element_blank(),
+        axis.text = element_text(size = 10))
+# Export plot
+ggsave(file.path(figures_path, "function.jpeg"),
+       width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
+```
+
+### Plot interaction network
+
+```{r connectivity_graph}
+# --- Format species labels
+graph_names <- data.frame()
+for(sp in spp_names) {
+  i <- gsub("s", "", sp)
+  labi <- paste0("s[", i, "]")
+  row <- data.frame("names" = sp, "labels" = as.character(labi))
+  graph_names <- graph_names %>% bind_rows(row)
+}
+
+# Graph
+g <- ue_to_graph(IS = model, neurnames = spp_names)
+
+# Add new names to graph
+g <- g %>% activate(nodes) %>% left_join(graph_names)
+
+lay <- layout_as_tree(g)
+
+plot_graph(g, 
+           colnodes = cols,
+           layout = lay,
+           coltext = "white",
+           parse_labels = TRUE,
+           use_labels_column = TRUE,
+           textsize = 6, 
+           s = 12)
+# Export plot
+ggsave(file.path(figures_path, "graph.jpeg"),
+       width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
+```
+
+## Simulate data under model
+
+```{r}
+# Create BoxComp (only one comportment)
+BoxComp <- array(c(list()), c(Ntrial,1))
+for (i in 1:Ntrial){
+  BoxComp[[i]] = matrix(c(0, Tmax, 1), nrow=3)
+}
+
+# Simulate
+simul <- Hawkesmulti(Ntrial = Ntrial, 
+                     delay = 0, 
+                     BoxComp = BoxComp, 
+                     spontComp = model$S, 
+                     interacComp = model$I)
+```
+
+### Plot simulated data and intensities
+
+```{r realization, fig.width=10, fig.height=13}
+# Name data
+simul <- name_dataneur(simul, species_names = spp_names)
+
+# Convert simulation to df
+simul_df <- ue_to_df(simul) %>% filter(stamp != 0)
+
+# Convert model to df
+model_df <- ue_model_to_df(model)
+
+# Compute rates
+rates <- compute_rate(model_df, simul_df, timestep = 0.001)
+
+plot_observed_rate(rates, data = simul_df, 
+                   timestep = 1,
+                   textsize = 10,
+                   t1 = 0,
+                   t2 = 10,
+                   hlambda = 5,
+                   hpoints = 2,
+                   ptsize = 1.3,
+                   minor_spacing = 0,
+                   major_spacing = 1,
+                   max_lambda = 2,
+                   lwd = .5,
+                   ybreaks = seq(0, 2, by = 1),
+                   cols = cols)
+# Export plot
+ggsave(file.path(figures_path, "realization.jpeg"),
+       width = 10, height = 13, dpi = 600, units = "cm", bg = "white")
+```

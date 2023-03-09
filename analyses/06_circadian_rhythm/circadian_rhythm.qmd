@@ -1,0 +1,194 @@
+---
+title: "Diel cycle"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: html
+embed-resources: true
+editor: visual
+---
+
+This code simulates species occurrences with circadian rhythms (using non-homogenous Poisson processes) and infers a Hawkes process between species.
+
+## Load libraries
+
+```{r, message = FALSE, output = FALSE}
+# Load functions from main folder
+devtools::load_all()
+
+packages <- c("here", "NHPoisson", "UnitEvents",
+              "ggplot2", "tidyr", "dplyr")
+base::lapply(packages, require)
+```
+
+## Parameters
+
+```{r}
+# Parameters for lambda function ---
+min_intensity <- c(0.1/24, 0.1/24)
+max_intensity <- c(1/24, 1/24)
+dt <- c(0, 0) # dt for the cosine finction for each species
+  
+# Simulation ---
+Tmax <- 10000 # Sampling time (one camera)
+step <- 1/60 # Timestep for lambda
+
+# Inference ---
+k <- 6
+delta <- 4/24 # bins size
+gamma <- 0.5
+scale <- 10e3 # numerical precision 
+
+# Estimator
+estimator <- "BVL"
+
+# Figures
+figures_path <- here("figures/06_circadian_rhythm")
+```
+
+## Create the intensity model
+
+```{r}
+times <- seq(0, Tmax, by = step)
+
+amplitude <- (max_intensity-min_intensity)/2
+
+lambda_mat <- vector()
+
+for(i in 1:length(amplitude)){
+  lambda_i <-  min_intensity[i] + 
+    amplitude[i]*(1 + cos((2*pi)*(times+dt[i])))
+  lambda_mat <- rbind(lambda_mat, lambda_i)
+}
+spp_names <- paste0("s", 1:nrow(lambda_mat))
+rownames(lambda_mat) <- spp_names
+```
+
+### Plot the inhomogenous intensity
+
+```{r plot_intensity, fig.width=5, fig.height=6}
+# --- Prepare data
+lambda_plot <- lambda_mat[,1:round(1/step)]
+times_plot <- times[1:round(1/step)]
+
+lambda_df <- as.data.frame(t(rbind(lambda_plot, times_plot)))
+
+lambda_df <- lambda_df %>% rename("times" = "times_plot") %>%
+  pivot_longer(cols = c("s1", "s2"), 
+               names_to = "snapshotName",
+               values_to = "lambda") %>%
+  mutate(times_h = times*24) %>%
+  group_by(snapshotName) %>%
+  mutate(mean = mean(lambda))
+
+# --- Plot
+ggplot(lambda_df, aes(x = times_h, y = lambda)) +
+  facet_grid(rows = vars(snapshotName),
+           switch = "y") +
+  geom_line() +
+  geom_hline(yintercept = 0,
+             linetype = "dashed") +
+  scale_x_continuous(breaks = seq(0, 24, by = 4)) +
+  ylim(0, max(lambda_df$lambda)) +
+  theme_linedraw() +
+  theme(strip.text.y.left = element_text(color = "black", 
+                                         angle = 0),
+        strip.background = element_rect(fill="white",
+                                        linewidth = 1),
+        text = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        plot.margin = margin(t = 10, b = 10, l = 10, r = 10)) +
+  xlab("Time of the day (hours)") +
+  ylab("Intensity")
+
+# Export figure
+ggsave(file.path(figures_path, "circadian_rhythms.jpeg"),
+       width = 10, height = 12, dpi = 600, units = "cm", bg = "white")
+```
+
+## Simulate non-homogenous Poisson process
+
+```{r simulate_NHP}
+# This might take a few minutes if the step for lambda (step) is small
+res <- data.frame()
+
+for(i in 1:nrow(lambda_mat)){ # for all species
+  dat <- simNHP.fun(lambda_mat[i,], fixed.seed = i)
+  stamp <- times[dat$posNH]
+  
+  res_i <- data.frame(stamp)
+  res_i$snapshotName <- rownames(lambda_mat)[i]
+  res <- res %>% bind_rows(res_i)
+}
+```
+
+### Plot simulated data
+
+```{r}
+# Select n first days
+ndays <- 10
+res_sub <- res %>% filter(stamp < ndays)
+
+ggplot(res_sub, 
+       aes(x = stamp, y = snapshotName, 
+           col = snapshotName)) +
+  geom_point(show.legend = FALSE) +
+  scale_color_brewer("Species", palette = "Dark2") +
+  theme_linedraw() +
+  theme(text = element_text(size = 14)) +
+  xlab("Time (days)") +
+  ylab("Species") +
+  ggtitle(paste0("Species occurrences (",
+                ndays, " first days)"))
+```
+
+## Inference with Hawkes processes
+
+```{r, results='hide'}
+# --- Prepare data
+# Add camera column
+res$cameraID <- "C1" # a unique camera
+
+# --- Infer
+inf <- infer(res, k = k, delta = delta,
+             gamma = gamma, scale = scale,
+             use_stamps = TRUE)
+# If the error:
+# Erreur dans NeuroCorr_SetParallel(threads) : 
+#   impossible de trouver la fonction "NeuroCorr_SetParallel"
+# appears, restart R, re-load packages and re-run
+```
+
+### Plot interactions
+
+```{r inferred_interactions}
+# --- Format inferred model
+# get alphabetical species order 
+spp_names <- sort(spp_names)
+
+u_inf <- unpack_inf(inf, species_names = spp_names, 
+                    k = k, delta = delta)
+
+ue_df <- ue_model_to_df(u_inf[[estimator]])
+
+# --- Plot
+plot_interactions(ue_df,
+                  scale = "hours", 
+                  textsize = 12) +
+  theme(strip.text.y.left = element_text(angle = 0))
+
+
+# Export figure
+ggsave(file.path(figures_path, "circadian_inference.jpeg"),
+       width = 16, height = 12, dpi = 600, units = "cm", bg = "white")
+
+```
+
+### Plot background rate
+
+```{r}
+plot_background_rate(ue_df,
+                     textsize = 12) +
+  ylim(0, max(ue_df$spont))
+```

@@ -124,7 +124,7 @@ get_sampling_info <- function(df, return = TRUE){
   
   dat_summarised <- df %>%
     group_by(cameraID) %>%
-    summarise(min_stamp = min(stamp),
+    summarize(min_stamp = min(stamp),
               max_stamp = max(stamp),
               duration = max_stamp - min_stamp)
   
@@ -166,7 +166,7 @@ filter_inactive_cameras <- function(df, thr_obs, thr_freq, plot = TRUE){
 
   ncapture <- df %>% select(cameraID, snapshotName, count, stamp) %>% 
     group_by(cameraID) %>% 
-    summarise(count = n(),
+    summarize(count = n(),
               minstamp = min(stamp), 
               maxstamp = max(stamp)) %>% 
     mutate(duration = maxstamp - minstamp) %>%
