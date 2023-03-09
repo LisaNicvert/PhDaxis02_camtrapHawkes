@@ -7,29 +7,20 @@
 #
 # Script Description: functions related to UnitEvents data handling, plotting, inference etc.
 
-
-# Libraries ---------------------------------------------------------------
-library(tibble)
-library(tidyr)
-library(UnitEvents)
-library(dplyr)
-library(igraph)
-library(tibble) # for rownames_to_column in get_models_df
-
-
-
 # Model creation ----------------------------------------------------------
 
+#' Create background rates
+#' 
+#' Create a background rates vector.
+#'
+#' @param spont spontaneous coefficient 
+#'   if unique value will be repeated
+#'   else will be in the order provided
+#' @param spp_names names of species
+#'
+#' @return Returns a matrix of dim (nspecies, 1) containing named spont rates
+#' @export
 create_spont_rates <- function(spont, spp_names){
-  # Create a spontaneous rates vector.
-  # ### Inputs
-  # spont: spontaneous coefficient 
-  #   if unique value will be repeated
-  #   else will be in the order provided
-  # spp_names: names of species
-  # ### Output
-  # Returns a matrix of dim (nspecies, 1) containing named spont rates
-
   nspecies <- length(spp_names)
   
   # Spontaneous part
@@ -51,15 +42,18 @@ create_spont_rates <- function(spont, spp_names){
   return(res)
 } 
 
+#' Create interactions
+#' 
+#' Create an array of null interaction functions
+#'
+#' @param spp_names names of species
+#' @param times times vector
+#'
+#' @return A (nspecies, nspecies, 1) array containing in each
+#'   cell a (2, length(times)) matrix: top row is a vector of zero (null)
+#'   interaction function), borrom row is the times vector.
+#' @export
 create_interactions <- function(spp_names, times){
-  # Create an array of null interaction functions.
-  # ### Inputs
-  # spp_names: names of species
-  # times: times vector
-  # ### Output
-  # A (nspecies, nspecies, 1) array containing in each
-  #   cell a (2, length(times)) matrix: top row is a vector of zero (null)
-  #   interaction function), borrom row is the times vector.
 
   nspecies <- length(spp_names)
 
@@ -78,17 +72,20 @@ create_interactions <- function(spp_names, times){
   return(funczero_ue)
 }
 
+#' Create function shape
+#' 
+#' Create a function shape.
+#'
+#' @param funcshape exp, gamma or linear
+#' @param times times vector
+#' @param t half-life (time value for which the function reaches strength/2).
+#'   only used when funcshape == "exp"
+#' @param strength function max strength coefficient
+#'
+#' @return A numeric vector of the same length as the times vector containing 
+#'   function values computed for each time.
+#' @export
 create_funcshape <- function(funcshape, times, t = 0.5, strength){
-  # Create a function shape.
-  # ### Inputs
-  # funcshape: exp, gamma or linear
-  # times: times vector
-  # t: half-life (time value for which the function reaches strength/2).
-  #   only used when funcshape == "exp"
-  # strength: function max strength coefficient
-  # ### Output
-  # A numeric vector of the same length as the times vector containing 
-  #   function values computed for each time.
 
   if(funcshape == "exp"){
     # Create non-zero interaction function
@@ -96,7 +93,7 @@ create_funcshape <- function(funcshape, times, t = 0.5, strength){
     
   }else if(funcshape == "gamma"){
     sh <- 7.5
-    fs <- strength*dgamma(times, shape = sh, scale = 1) # 1/(sh - 1)
+    fs <- strength*stats::dgamma(times, shape = sh, scale = 1) # 1/(sh - 1)
     
   }else if(funcshape == "linear"){
     fs <- seq(strength, 0, length = length(times))
@@ -106,17 +103,17 @@ create_funcshape <- function(funcshape, times, t = 0.5, strength){
 }
 
 
-
-
 # True/false positives/negatives ------------------------------------------
 
+#' Get bins sum
+#' 
+#' Get the sum of the bins for a Hawkes model.
+#'
+#' @param M an interaction matrix(K*K*Ncomp array)
+#'   (K species and Ncomp different comportments (often Ncomp =1))
+#'
+#' @return A K*K matrix containing 1 if the interaction was inferred, else 0
 get_bins_sum <- function(M) {
-  # Get the sum of the bins for a Hawkes model.
-  # ### Inputs:
-  # M: an interaction matrix(K*K*Ncomp array)
-  #   (K species and Ncomp different comportments (often Ncomp =1))
-  # ### Output:
-  # A K*K matrix containing 1 if the interaction was inferred, else 0
   
   res <-apply(M[,,1], c(1,2), FUN = function(m) sum(abs(m[[1]][2,])))
   res[res != 0] <- 1
@@ -124,13 +121,15 @@ get_bins_sum <- function(M) {
   return(res)
 }
 
+#' Get bins sums
+#'
+#' Get the sum of the bins for a list of Hawkes model.
+#' 
+#' @param Mlist Mlist: a list of interaction matrix(K*K*Ncomp array)
+#'   (K species and Ncomp different comportments (often Ncomp =1))
+#'
+#' @return A K*K matrix containing the number of times each value was inferred
 get_bins_sum_list <- function(Mlist) {
-  # Get the sum of the bins for a list of Hawkes model.
-  # ### Inputs:
-  # Mlist: a list of interaction matrix(K*K*Ncomp array)
-  #   (K species and Ncomp different comportments (often Ncomp =1))
-  # ### Output:
-  # A K*K matrix containing the number of times each value was inferred
   
   res <- matrix(data = 0,
                 nrow = nspecies,
@@ -142,17 +141,20 @@ get_bins_sum_list <- function(Mlist) {
   return(res)
 }
 
+#' Compute true/false positives/negatives
+#' 
+#' Compute:
+#'     TP (true positives)
+#'     FP (false positives)
+#'     TN (true negatives)
+#'     FN (false negatives)
+#'
+#' @param Msimul a K*K*Ncomp array (K species Ncomp different comportments (often Ncomp =1))
+#' @param Mtrue true array (K*K*Ncomp array)
+#'
+#' @return Returns a named vector with four elements named TP, FP, TN, FN
+#' @export
 compute_pos_neg <- function(Msimul, Mtrue){
-  # Compute:
-  #     TP (true positives)
-  #     FP (false positives)
-  #     TN (true negatives)
-  #     FN (false negatives)
-  # ### Inputs
-  # Msimul: a K*K*Ncomp array (K species Ncomp different comportments (often Ncomp =1))
-  # Mtrue: true array (K*K*Ncomp array)
-  # ### Output
-  # Returns a named vector with four elements named TP, FP, TN, FN
   
   Msim_grouped <- get_bins_sum(Msimul)
   Mtrue_grouped <- get_bins_sum(Mtrue)
@@ -179,23 +181,25 @@ compute_pos_neg <- function(Msimul, Mtrue){
   return(res)
 }
 
+#' Compute several true/false positives
+#' 
+#' Evaluates several inferred models (in Msim_list) compared to the true
+#' model used to generate data (Mtrue).
+#' Computes:
+#'     TP (true positives)
+#'     FP (false positives)
+#'     TN (true negatives)
+#'     FN (false negatives)
+#' @param Msim_list a list, each element has elements $BL and $BOL and
+#'     in each there are $S (spontaneous part) and $I 
+#'     (interaction coefficients, lists.)
+#' @param Mtrue true model: array (K*K*Ncomp array)
+#' @param est estimator to use (BL, BVL or BOL)
+#'
+#' @return Returns a df with columns TP, FP, TN, FN and as many rows as
+#'   there are models in Msim_list.
+#' @export
 compute_pos_neg_list <- function(Msim_list, Mtrue, est = "BL"){
-  # Evaluates several inferred models (in Msim_list) compared to the true
-  # model used to generate data (Mtrue).
-  # Computes:
-  #     TP (true positives)
-  #     FP (false positives)
-  #     TN (true negatives)
-  #     FN (false negatives)
-  # ### Inputs
-  # Msim_list: a list, each element has elements $BL and $BOL and
-  #     in each there are $S (spontaneous part) and $I 
-  #     (interaction coefficients, lists.)
-  # Mtrue: true model: array (K*K*Ncomp array)
-  # est: estimator to use (BL, BVL or BOL)
-  # ### Output
-  # Returns a df with columns TP, FP, TN, FN and as many rows as
-  #   there are models in Msim_list.
   
   N <- length(Msim_list)
   
@@ -212,22 +216,23 @@ compute_pos_neg_list <- function(Msim_list, Mtrue, est = "BL"){
 
 # Get simulated models ----------------------------------------------------
 
+#' Get models dataframe
+#'
+#' Get a list of all models in inferred_models plus the true model
+#' 
+#' @param inferred_models a list with 2 components
+#'    $reinfer: list of models, each one inferred from a different dataset
+#' which is assumed to have been generated by the same true model.
+#'    $reinfer_parameters: metadata about the inferred models
+#' @param models a list of true models to match the true model that have been 
+#'   used to generate data from which models in $reinfer were inferred.
+#' @param est estimator to use ($BL or $BOL)
+#'
+#' @return A dataframe  of models
+#' @export
 get_models_df <- function(inferred_models, 
                           models, 
-                          alpha = 0.05,
                           est = "BL"){
-  # Get a list of all models in inferred_models plus the true model
-  # ### Inputs
-  # inferred_models: a list with 2 components
-  #   $reinfer: list of models, each one inferred from a different dataset
-  #   which is assumed to have been generated by the same true model.
-  #   $reinfer_parameters: metadata about the inferred models
-  # models: a list of true models to match the true model that have been 
-  #   used to generate data from which models in $reinfer were inferred.
-  # alpha: confidence interval to apply to the model output if ppstat
-  # est: estimator to use ($BL or $BOL) if UnitEvents
-  # ### Output
-  # A dataframe  of models
   
   # Get the true model from which simulated data were inferred
   if("S" %in% names(models) & "I" %in% names(models) & length(models) == 2){ # Then it's only one model
@@ -259,21 +264,24 @@ get_models_df <- function(inferred_models,
   return(res)
 }
 
+#' List of models to dataframes
+#' 
+#' Transform a list of UnitEvent models to a dataframe
+#' 
+#' @param mlist list of models of type UnitEvents 
+#'   each component of mlist must be a list with 2 named 
+#'   elements $S and $I (corresponds to a model$BL, BOL or $BVL output of BoxLasso)
+#' @param comp the comportment number to extract
+#'
+#' @return A dataframe with 4 or 5 columns:
+#'   time: time for the interaction functions
+#'   excitefunc: value of the excitation function
+#'   from: from species
+#'   to: to species
+#'   spont: spontaneous rate of the "to" species
+#'   rep (if mlist is a named list): name of the i-th element of mlist
+#' @export
 mlist_to_df <- function(mlist, comp = 1){
-  # Transform a list of UnitEvent models to a dataframe
-  # ### Input
-  # mlist: list of models of type UnitEvents 
-  #   each component of mlist must be a list with 2 named 
-  #   elements $S and $I (corresponds to a model$BL, BOL or $BVL output of BoxLasso)
-  # comp: the comportment number to extract
-  # ### Output
-  # A dataframe with 4 or 5 columns:
-  #   time: time for the interaction functions
-  #   excitefunc: value of the excitation function
-  #   from: from species
-  #   to: to species
-  #   spont: spontaneous rate of the "to" species
-  #   rep (if mlist is a named list): name of the i-th element of mlist
   
   mli <- mlist
   
@@ -300,19 +308,25 @@ mlist_to_df <- function(mlist, comp = 1){
 }
 
 # Compute rates -------------------------
+
+#' Compute rates
+#' 
+#' Compute the rate corresponding to data with a given model.
+#' 
+#' @param model a dataframe corresponding to the model estimated with UnitEvents.
+#'   This dataframe can be obtained with the function "ue_model_to_df".
+#'   Must have columns time, excitefunc, to, from and spont.
+#' @param data occurrence data. Must have one column stamp and one column species. 
+#' Currently only one camera is supported.
+#' @param timestep timestep for the function discretisation (days). 
+#' Should be smaller than delta used in the model for good results. Defaults to 0.01.
+#'
+#' @return A dataframe with columns time, lambda and species.
+#'   time: the time.
+#'   lambda: the intensity function at time t.
+#'   species: the species for which the intensity is computed.
+#' @export
 compute_rate <- function(model, data, timestep = 0.01){
-  # Compute the rate corresponding to data with a given model.
-  # ### Inputs
-  # model: a dataframe corresponding to the model estimated with UnitEvents.
-  #   This dataframe can be obtained with the function "ue_model_to_df".
-  #   Must have columns time, excitefunc, to, from and spont.
-  # data: occurrence data. Must have one column stamp and one column species. Currently only one camera is supported.
-  # timestep: timestep for the function discretisation (days). Should be smaller than delta used in the model for good results. Defaults to 0.01.
-  # ### Output
-  # A dataframe with columns time, lambda and species.
-  #   time: the time.
-  #   lambda: the intensity function at time t.
-  #   species: the species for which the intensity is computed.
   
   # Occurrence times
   stamps <- data$stamp
@@ -374,19 +388,22 @@ compute_rate <- function(model, data, timestep = 0.01){
 }
 
 # Inference parameters --------------------------
+
+#' Compute box
+#' 
+#' Compute time windows covering the whole dataset for a given dataset d.
+#'
+#' @param d dataframe with columns stamp, datetime and cameraID
+#' @param use_stamps use timestamps or dates?
+#'
+#' @return Returns the extimated box (matrix)
+#'   line 1: Camera number
+#'   line 2: start time
+#'   line 3: stop time
+#'   line 4: comportment ID
+#'   each column corresponds to one camera.
+#' @export
 compute_box <- function(d, use_stamps = FALSE){
-  # Compute time windows covering the whole dataset
-  #   for a given dataset d.
-  # ### Inputs
-  # d: dataframe with columns stamp, datetime and cameraID
-  # use_stamps: use timestamps or dates?
-  # ### Output
-  # Returns the extimated box (matrix)
-  #   line 1: Camera number
-  #   line 2: start time
-  #   line 3: stop time
-  #   line 4: comportment ID
-  #   each column corresponds to one camera.
   
   # --- Compute stamps from custom origin
   if (!use_stamps) {
@@ -423,16 +440,23 @@ compute_box <- function(d, use_stamps = FALSE){
   return(BoxEst)
 }
 
+#' Get IDs
+#' 
+#' Get a unique row ID for each combination of species/camera.
+#' 
+#' @param df a dataframe that must have columns
+#'     species
+#'     cameraID
+#' @param delete_missing_species delete species not seen at all cameras?
+#'
+#' @return a dataframe with columns
+#'    cameraID
+#'    species
+#'    rowid (species_cameraID)
+#' The df is arranged with all species for the same site first
+#' 
+#' @export
 get_ids <- function(df, delete_missing_species = FALSE){
-  # Get a unique row ID for each combination of species/camera.
-  # ### Input
-  # df: a dataframe that must have columns
-  #     species
-  #     cameraID
-  # delete_missing_species: delete species not seen at all cameras?
-  # ### Output a dataframe with columns
-  #     species_siteID, with all species for the same
-  #     site first
   
   if(delete_missing_species){ # if asked first don't give an ID for species
     # which are not seen at all sites
@@ -463,6 +487,30 @@ get_ids <- function(df, delete_missing_species = FALSE){
 }
 
 # Inference --------------------------
+
+#' Infer a Hawkes model
+#' 
+#' Infer Hawkes model for data d.
+#'
+#' @param d dataset to infer from. Must have columns:
+#'   snapshotName
+#'   cameraID
+#'   stamp
+#'   datetime
+#'   count
+#' @param k number of bins for the inference function
+#' @param delta binwidth
+#' @param Z cutoff
+#' @param gamma penalization LASSO parameter
+#' @param scale scale for precision of calculations (defaults to 10000)
+#' @param use_stamps use timestamps or dates?
+#'
+#' @return Returns the output in the same form as BoxLasso() function of UnitEvents
+#' A list with 2 (if n(species) = 1) or 3 elements (if n(species) > 1)
+#'   $BL
+#'   $BVL
+#'   $BOL
+#' @export
 infer <- function(d, 
                   k = 12, 
                   delta = 2/24, 
@@ -470,27 +518,7 @@ infer <- function(d,
                   gamma = 0.5, 
                   scale = 10000,
                   use_stamps = FALSE){
-  # Infer Hawkes model for data d.
-  # ### Inputs
-  # d: dataset to infer from. Must have columns:
-  #   snapshotName
-  #   cameraID
-  #   stamp
-  #   datetime
-  #   count
-  # k: number of bins for the inference function
-  # delta: binwidth
-  # Z: cutoff
-  # gamma: penalization LASSO parameter
-  # scale: scale for precision of calculations (defaults to 10000)
-  # use_stamps: use timestamps or dates?
-  # ### Output
-  # Returns the output in the same form as BoxLasso() function of UnitEvents
-  # A list with 2 (if n(species) = 1) or 3 elements (if n(species) > 1)
-  #   $BL
-  #   $BVL
-  #   $BOL
-  
+
   # --- Inference parameters from data
   Nneur = as.numeric(length(unique(d$snapshotName)))
   Ntrial = as.numeric(length(unique(d$cameraID)))
@@ -517,27 +545,30 @@ infer <- function(d,
   return(inf)
 }
 
+#' Format the inference output
+#' 
+#' Transform output of inference into a list of coefficient matrices.
+#' 
+#' @param inf the output of the infer or BoxLasso. Must be a list with 3 elements:
+#'   $BL
+#'   $BVL
+#'   $BOL
+#' @param species_names a list of species names to rename rows and columns (optional)
+#' @param k number of bins
+#' @param delta binwidth
+#'
+#' @return A list of length 3:
+#'   $BL
+#'   $BVL
+#'   $BOL
+#' Each element is a list of length 2 (and is the named output of the UnitEvent's
+#'   function coeff2interac):
+#'   $S (matrix (n(species), Ncomp)). The matrix's rows are named
+#'     with species_names.
+#'   $I (array (n(species), n(species), Ncomp)). The array's first
+#'   and second dimensions are named with species_names.
+#' @export
 unpack_inf <- function(inf, species_names = NA, k, delta){
-  # Transform output of inference into a list of coefficient matrices.
-  # ### Inputs
-  # inf: the output of the infer or BoxLasso. Must be a list with 3 elements:
-  #   $BL
-  #   $BVL
-  #   $BOL
-  # species_names: a list of species names to rename rows and columns (optional)
-  # k: number of bins
-  # delta: binwidth
-  # ### Output
-  # A list of length 3:
-  #   $BL
-  #   $BVL
-  #   $BOL
-  # Each element is a list of length 2 (and is the named output of the UnitEvent's
-  #   function coeff2interac):
-  #   $S (matrix (n(species), Ncomp)). The matrix's rows are named
-  #     with species_names.
-  #   $I (array (n(species), n(species), Ncomp)). The array's first
-  #   and second dimensions are named with species_names.
   
   bench = list() # initialise list
   bench[[1]] = coeff2interac(inf$BL, k, delta) # lasso estimators
@@ -564,29 +595,32 @@ unpack_inf <- function(inf, species_names = NA, k, delta){
   return(bench)
 }
 
+#' Reinfer Hawkes model
+#' 
+#' Reinfer Hawkes model from a dataset generated with a Hawkes model.
+#' 
+#' @param M dataset to infer from, a DataNeur matrix (output of HawkesMulti
+#'   from the UnitEvents package). It is an array (nspecies, ncameras, nmax+1)
+#'   where nmax is the maximum number of occurrences for one species on
+#'   one camera.
+#' @param Ntrial number of cameras
+#' @param k number of bins for the interaction functions
+#' @param delta binwidth
+#' @param gamma penalization LASSO parameter
+#' @param scale scale for precision of calculations (defaults to 10000)
+#'
+#' @return Returns the output in the same form as BoxLasso() function of UnitEvents
+#' A list with 2 (if n(species) = 1) or 3 elements (if n(species) > 1)
+#'   $BL
+#'   $BVL
+#'   $BOL
+#' @export
 reinfer <- function(M, 
                     Ntrial,
                     k = 12, 
                     delta = 2/24, 
                     gamma = 0.5, 
                     scale = 10000){
-  # Reinfer Hawkes model from a dataset generated with a Hawkes model.
-  # ### Inputs
-  # M: dataset to infer from, a DataNeur matrix (output of HawkesMulti
-  #   from the UnitEvents package). It is an array (nspecies, ncameras, nmax+1)
-  #   where nmax is the maximum number of occurrences for one species on
-  #   one camera.
-  # Ntrial: number of cameras
-  # k: number of bins for the interaction functions
-  # delta: binwidth
-  # gamma: penalization LASSO parameter
-  # scale: scale for precision of calculations (defaults to 10000)
-  # ### Output
-  # Returns the output in the same form as BoxLasso() function of UnitEvents
-  # A list with 2 (if n(species) = 1) or 3 elements (if n(species) > 1)
-  #   $BL
-  #   $BVL
-  #   $BOL
   
   # Compute Tmax for each camera for the boxes later
   d <- ue_to_df(M)
@@ -625,17 +659,22 @@ reinfer <- function(M,
 }
 
 # Convert data formats --------------------------
+
+#' Transform dataframe to matrix
+#' 
+#' Transforms the dataframe into a matrix ready for Lasso inference.
+#' 
+#' @param df A dataframe with columns
+#'   cameraID
+#'   stamp
+#'   species
+#'   count
+#'
+#' @return an array (nspecies, ncameras, nmax+1) in the same format as the output 
+#'   of HawkesMulti from the UnitEvents package). nmax is the maximum number 
+#'   of occurrences for one species on one camera.
+#' @export
 df_to_matrix <- function(df){
-  # Transforms the dataframe into a matrix ready for Lasso inference.
-  # df has columns
-  #   cameraID
-  #   stamp
-  #   species
-  #   count
-  # ### Output 
-  #  an array (nspecies, ncameras, nmax+1) in the same format as the output 
-  #   of HawkesMulti from the UnitEvents package). nmax is the maximum number 
-  #   of occurrences for one species on one camera.
   
   ids_df <- get_ids(df, delete_missing_species = FALSE)
   
@@ -690,22 +729,25 @@ df_to_matrix <- function(df){
   return(M)
 }
 
+#' Model to dataframe
+#' 
+#' Transforms the specification of a UnitEvents model 
+#' to a dataframe.
+#'
+#' @param mod  a list of length 2 (and is the named output of the UnitEvent's
+#'   function coeff2interac):
+#'   $S (matrix (n(species), Ncomp)).
+#'   $I (array (n(species), n(species), Ncomp)).
+#' @param comp the comportment to extract
+#'
+#' @return a dataframe with columns
+#'   time: the time (support of interaction functions)
+#'   excitefunc: values of the functions for a corresponding time t
+#'   from: species "from" which the interaction is
+#'   to: species "towards" which the interaction is
+#' @export
 ue_model_to_df <- function(mod, comp = 1){
-  # Transforms the specification of a UnitEvents model 
-  # to a dataframe.
-  # ### Inputs
-  # mod is a list of length 2 (and is the named output of the UnitEvent's
-  #   function coeff2interac):
-  #   $S (matrix (n(species), Ncomp)).
-  #   $I (array (n(species), n(species), Ncomp)).
-  # comp is the comportment to extract
-  # ### Output
-  # a dataframe with columns
-  #   time: the time (support of interaction functions)
-  #   excitefunc: values of the functions for a corresponding time t
-  #   from: species "from" which the interaction is
-  #   to: species "towards" which the interaction is
-  
+
   # Get the interaction part
   mod_interacfunc <- mod$I[,, comp]
   
@@ -740,7 +782,7 @@ ue_model_to_df <- function(mod, comp = 1){
   
   # Add spont part
   mod_spont <- mod_spont %>% as.data.frame %>% 
-    rownames_to_column("to")
+    tibble::rownames_to_column("to")
   
   # Merge
   res <- data.frame(mdf.all) %>% left_join(mod_spont, by = 'to') %>%
@@ -753,18 +795,21 @@ ue_model_to_df <- function(mod, comp = 1){
 }
 
 
+#' Model to graph
+#' 
+#' Adaptation of plot_graph_Hawkes function in UnitEvents, 
+#' that returns the igraph object instead of plotting it.
+#'
+#' @param IS a list of length 2 (the output of the UnitEvent's function coeff2interac):
+#'   $S (matrix (n(species), Ncomp)).
+#'   $I (array (n(species), n(species), Ncomp)).
+#' @param neurnames species_names
+#'
+#' @return a tbl_graph object representing the model.
+#'   nodes: 1 column: names (with species names).
+#'   edge: 3 columns: from, to, weight.
+#' @export
 ue_to_graph <- function(IS, neurnames){
-  # Adaptation of plot_graph_Hawkes function in UnitEvents, 
-  # that returns the igraph object instead of plotting it.
-  # ### Inputs
-  # IS: a list of length 2 (the output of the UnitEvent's function coeff2interac):
-  #   $S (matrix (n(species), Ncomp)).
-  #   $I (array (n(species), n(species), Ncomp)).
-  # neurnames: species_names
-  # ### Output
-  # a tbl_graph object representing the model.
-  #   nodes: 1 column: names (with species names).
-  #   edge: 3 columns: from, to, weight.
   
   spontComp = IS[[1]]
   interacComp = IS[[2]]
@@ -773,8 +818,8 @@ ue_to_graph <- function(IS, neurnames){
   Ncomp = ncol(spontComp)
   
   comp = 1
-  mescolors = colorRampPalette(c("red", "magenta", "gold", 
-                                 "green", "blue"))(Nneur)
+  mescolors = grDevices::colorRampPalette(c("red", "magenta", "gold", 
+                                                 "green", "blue"))(Nneur)
   
   nul = which(spontComp[, comp] < 10^(-7))
   color = rep("red", Nneur)
@@ -803,7 +848,7 @@ ue_to_graph <- function(IS, neurnames){
       }
     }
   }
-  g = graph.adjacency(A, weighted = TRUE, mode = "directed")
+  g = igraph::graph.adjacency(A, weighted = TRUE, mode = "directed")
   if (Ncomp > 1) {
     for (comp in 2:Ncomp) {
       nul = which(spontComp[, comp] < 10^(-7))
@@ -835,22 +880,25 @@ ue_to_graph <- function(IS, neurnames){
           }
         }
       }
-      g = graph.adjacency(A, weighted = TRUE, mode = "directed")
+      g = igraph::graph.adjacency(A, weighted = TRUE, mode = "directed")
     }
   }
   gr <- as_tbl_graph(g) %>% activate(nodes) %>% mutate(names = neurnames)
   return(gr)
 }
 
+#' Name data
+#'
+#' Attribute colnames and rownames to dataneur generated with Hawkesmulti.
+#' 
+#' @param dn an array (nspecies, ncameras, nmax+1) in the same format as the output 
+#'   of HawkesMulti from the UnitEvents package). 
+#' @param species_names ordered vector of species names.
+#' @param cameras_names ordered vector of cameras names.
+#'
+#' @return The same matrix as the input (dn) but with named rows and columns.
+#' @export
 name_dataneur <- function(dn, species_names, cameras_names = NA){
-  # Attribute colnames and rownames to dataneur generated with Hawkesmulti.
-  # ### Input
-  # dn: an array (nspecies, ncameras, nmax+1) in the same format as the output 
-  #   of HawkesMulti from the UnitEvents package). 
-  # species_names: ordered vector of species names.
-  # cameras_names: ordered vector of cameras names.
-  # ### Output
-  # The same matrix as the input (dn) but with named rows and columns.
   
   # copy data
   res <- dn
@@ -878,17 +926,20 @@ name_dataneur <- function(dn, species_names, cameras_names = NA){
   return(res)
 }
 
+#' Simolation to dataframe
+#' 
+#' Convert output of simulation generated with HawkesMulti to a dataframe 
+#' (rows must be named).
+#' 
+#' @param ue an array (nspecies, ncameras, nmax+1) in the same format as the output 
+#'   of HawkesMulti from the UnitEvents package). 
+#'
+#' @return Returns a dataframe with columns:
+#'   species
+#'   camera
+#'   stamp
+#' @export
 ue_to_df <- function(ue){
-  # Convert output of simulation generated with HawkesMulti to a dataframe 
-  # (rows must be named).
-  # ### Inputs
-  # ue: an array (nspecies, ncameras, nmax+1) in the same format as the output 
-  #   of HawkesMulti from the UnitEvents package). 
-  # ### Output
-  # Returns a dataframe with columns:
-  #   species
-  #   camera
-  #   stamp
   
   ID <- rownames(ue)
   IDs <- strsplit(ID, "_", fixed = TRUE)
@@ -901,7 +952,7 @@ ue_to_df <- function(ue){
   simudf$camera <- cams  
   
   simudf <- simudf %>% select(species, camera, everything()) %>%
-    pivot_longer(cols = 3:ncol(simudf), values_to = "stamp")%>%
+    tidyr::pivot_longer(cols = 3:ncol(simudf), values_to = "stamp")%>%
     select(-name)
   
   if(nrow(simudf) == 0){

@@ -8,26 +8,19 @@
 # Script Description: contains functions to handle and format 
 # camera trap data
 
-library(tibble)
-library(dplyr)
-library(ggplot2)
-library(gridExtra)
-library(tidyr)
-
-library(foreach)
-library(doParallel)
-library(data.table)
-
-
 # Modify data -------------------------------------------------------------
+
+#' Add timestamps
+#' 
+#' Add a timestamps column to df.
+#' 
+#' @param df a dataframe with datetime column of type date.
+#' @param origin optional origin (for which stamp is zero)
+#' @param unit time unit to use for the stamps (delay in ...)
+#'
+#' @return  A dataframe with one more column (named stamp)
+#' @export
 add_stamps <- function(df, origin = NULL, unit = "days"){
-  # Add a timestamps column to df.
-  # ###
-  # df: a dataframe with datetime column of type date.
-  # origin: optional origin (for which stamp is zero)
-  # unit: time unit to use for the stamps (delay in ...)
-  # ### Output
-  # A dataframe with one more column (named timestamps), starting at one minute.
   
   # -- Create min from data
   if(is.null(origin)){
@@ -47,16 +40,19 @@ add_stamps <- function(df, origin = NULL, unit = "days"){
   return(dstamp)
 }
 
+#' Shift duplicates
+#' 
+#' Shift records occuring at the same timestamp on the same camera
+#'
+#' @param d a dataframe with columns
+#'   row_ID (row id)
+#'   cameraID (camera identifier)
+#'   stamp (timestamp, numeric)
+#' @param precision precision to consider
+#'
+#' @return input dataframe with modified timestamps.
+#' @export
 shift_duplicates <- function(d, precision = 10^6){
-  # Shift records occuring at the same timestamp on the same camera
-  # ### Inputs
-  # d is a dataframe with columns
-  #   row_ID (row id)
-  #   cameraID (camera identifier)
-  #   stamp (timestamp, numeric)
-  # precision: precision to consider
-  # ### Output
-  # Returns the input dataframe with modified timestamps.
   
   if(1/precision > 1/(24*3600)){
     stop("precision must be less than 1 second (~ ", 
@@ -112,18 +108,19 @@ shift_duplicates <- function(d, precision = 10^6){
 
 
 # Visualise and summarise data --------------------------------------------
+
+#' Get sampling info
+#'
+#' @param df A camera trap dataframe. Must have columns
+#'   cameraID
+#'   stamp
+#' @param return return the summarized dataframe?
+#'
+#' @return prints a message summarizing sampling info for the cameras.
+# If return = TRUE, also returns the summarized dataframe with
+# min and max stamp and samplung duration for each camera.
+#' @export
 get_sampling_info <- function(df, return = TRUE){
-  # Gives information about the sampling length of the dataset, the number of cameras
-  # and the mean sampling time per camera.
-  # ### Input
-  # A camera trap dataframe. Must have columns
-  #   cameraID
-  #   stamp
-  # return: return the summarized dataframe?
-  # ### Output
-  # prints a message summarizing sampling info for the cameras.
-  # If return = TRUE, also returns the summarized dataframe with
-  # min and max stamp and samplung duration for each camera.
   
   dat_summarised <- df %>%
     group_by(cameraID) %>%
@@ -150,19 +147,23 @@ get_sampling_info <- function(df, return = TRUE){
 
 
 # Data quality ------------------------------------------------------------
+
+#' Filter out cameras
+#' 
+#' Filter out cameras that have not enough observations/not enough 
+#' frequent observations
+#' 
+#' @param df dataframe to filter. Must have columns cameraID, 
+#' snapshotName, count, stamp
+#' @param thr_obs minimal number of observations to keep camera
+#' @param thr_freq minimal frequency of observations to keep camera
+#' @param plot plot graphs?
+#'
+#' @return Returns the filtered dataframe. If plut = TRUE, ans plots 
+#' camera sampling information.
+#' @export
 filter_inactive_cameras <- function(df, thr_obs, thr_freq, plot = TRUE){
-  # Filter out cameras that have not enough observations/not enough 
-  # frequent observations
-  # ### Inputs
-  # df: dataframe to filter
-  # must have cols cameraID, snapshotName, count, stamp
-  # thr_obs: minimal number of observations to keep camera
-  # thr_freq: minimal frequelcy of observations to keep camera
-  # plot: plot graphs?
-  # ### Outputs
-  # Returns the filtered dataframe. If plut = TRUE, ans plots 
-  # camera sampling information.
-  
+
   ncapture <- df %>% select(cameraID, snapshotName, count, stamp) %>% 
     group_by(cameraID) %>% 
     summarise(count = n(),
@@ -180,15 +181,14 @@ filter_inactive_cameras <- function(df, thr_obs, thr_freq, plot = TRUE){
       geom_hline(yintercept = thr_obs, linetype = "dashed") +
       geom_point(aes(x = reorder(cameraID, count), y = count)) +
       theme(axis.text.x = element_text(angle=45, hjust=1))
-    # print(g1)
-    
+
     g2 <- ggplot(camplot) + 
       scale_y_log10() +
       geom_hline(yintercept = thr_freq, linetype = "dashed") +
       geom_point(aes(x = reorder(cameraID, freq), y = freq)) +
       theme(axis.text.x = element_text(angle=45, hjust=1))
-    # print(g2)
-    grid.arrange(grobs = list(g1, g2), nrow=1)
+
+    gridExtra::grid.arrange(grobs = list(g1, g2), nrow=1)
   }
   
   # Defines cameras that should be kept

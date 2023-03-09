@@ -5,7 +5,30 @@ Authors@R:
     person("Lisa", "Nicvert", , "lisa.nicvert@univ-lyon1.fr", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0006-5763-0865"))
 Description: This project contains the code to reproduce the analyses from the article "Using the Hawkes model to study spatio-temporal interactions between multiple species from camera trap data". The aim is to use the multivariate Hawkes point process to analyze camera trap data by performing simulations and analyzing real camera trap data from the Snapshot Safari project.
-License: use_gpl3_license()
+License: GPL-3
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
+Roxygen: list(markdown = FALSE)
 RoxygenNote: 7.2.1
+Imports: 
+    dplyr,
+    ggplot2,
+    ggraph,
+    ggtext,
+    graphics,
+    grDevices,
+    grid,
+    gridExtra,
+    igraph,
+    lubridate,
+    magrittr,
+    pammtools,
+    patchwork,
+    rlang,
+    stats,
+    stringr,
+    tibble,
+    tidygraph,
+    tidyr,
+    tidyselect,
+    UnitEvents,
+    viridis

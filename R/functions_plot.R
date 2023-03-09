@@ -7,17 +7,33 @@
 #
 # Script Description: plot various data
 
-
-# Libraries ---------------------------------------------------------------
-library(ggplot2)
-library(lubridate)
-library(ggtext)
-library(tidygraph)
-library(ggraph)
-library(patchwork) # to add ggplot objects together
-library(pammtools) # for stepribbon
-
 # Model -------------------------------------------------------------------
+
+#' Plot interaction functions
+#' 
+#' Plot UnitEvents interaction functions
+#' 
+#' @param ue_df dataframe with results of UnitEvents inference. Must have columns:
+#'   time
+#'   excitefunc
+#'   from
+#'   to
+#' @param scale days or hours, following whether we want the time axis
+#' graduated in days or hours
+#' @param title plot title
+#' @param relative plot intensity absolute or relative (divided by spont) value?
+#' @param silhouettes optional labels with animal silhouettes to replace default labels.
+#' If it exists, must be a named vector with each name 
+#' corresponding to a species name in ue_df. The elements are 
+#' markdown codes containing a <img src='pato_to_image'/> element.
+#' @param timestep optional timestep for x-axis.
+#' @param ystep optional step for y-axis (function values).
+#' @param textsize text minimal size (for x and y axes)
+#' @param linesize linewidth
+#' @param separate_self whether to separate auto-interactions and plot them above
+#'
+#' @return ggplot object, a plot with the pairwise interaction functions between species.
+#' @export
 plot_interactions <- function(ue_df, 
                               scale = "days",
                               title = NA,
@@ -29,30 +45,6 @@ plot_interactions <- function(ue_df,
                               linesize = .5, 
                               separate_self = FALSE
 ){
-  # Plot interaction functions
-  # ### Inputs
-  # ue_df: dataframe with results of UnitEvents inference. Must have columns:
-  #   time
-  #   excitefunc
-  #   from
-  #   to
-  # scale: days or hours, following whether we want the time axis
-  #   graduated in days or hours
-  # title: plot title
-  # relative: plot intensity absolute or relative (divided by spont) value?
-  # silhouettes: optional labels with animal silhouettes to replace 
-  #   default labels.
-  #   if it exists, must be a named vector with each name 
-  #   corresponding to a species name in ue_df. The elements are 
-  #   markdown codes containing a <img src='pato_to_image'/> element.
-  # timestep: optional timestep for x-axis.
-  # ystep: optional step for y-axis (function values).
-  # textsize: text minimal size (for x and y axes)
-  # linesize: linewidth
-  # separate_self: whether to separate auto-interactions and plot them above
-  # ### Output
-  # ggplot object, a plot with the pairwise interaction functions 
-  #   between species.
   
   ue_df_plot <- ue_df
   
@@ -188,9 +180,9 @@ plot_interactions <- function(ue_df,
   nspecies <- length(unique(ue_df_plot$from))
   
   if (separate_self) {
-    glist <- g2 + plot_spacer() + g + 
-      plot_layout(heights = c(1, 0.3, nspecies),
-                  ncol = 1)
+    glist <- g2 + patchwork::plot_spacer() + g + 
+      patchwork::plot_layout(heights = c(1, 0.3, nspecies),
+                             ncol = 1)
     
     # Format axes
     glist[[1]] <- glist[[1]] + 
@@ -199,7 +191,7 @@ plot_interactions <- function(ue_df,
             axis.title.x.bottom = element_blank())
     
     if (!is.na(title)) { 
-      glist <- glist + title(title)
+      glist <- glist + graphics::title(title)
     }
     glist
   } else {
@@ -207,32 +199,34 @@ plot_interactions <- function(ue_df,
   }
 }
 
+#' Plot background rates
+#' 
+#' Plot the background rate for species.
+#'
+#' @param ue_df ue_df: dataframe with results of UnitEvents inference. Must have columns:
+#'   time
+#'   excitefunc
+#'   from
+#'   to
+#' @param title plot title
+#' @param textsize text minimal size (for x and y axes)
+#' @param silhouettes optional labels with animal silhouettes to replace default labels.
+#' If it exists, must be a named vector with each name 
+#' corresponding to a species name in ue_df. The elements are 
+#' markdown codes containing a <img src='pato_to_image'/> element.
+#' @param write_label write background rates values besides the points?
+#' @param nudge_label if the background rates are written, by how much should they 
+#' be nudged on the x-axis?
+#'
+#' @return a ggplot object, representing background rates for each species.
+#' @export
 plot_background_rate <- function(ue_df,
                                  title = NA,
                                  textsize = 10,
                                  silhouettes = NA,
                                  write_label = FALSE,
                                  nudge_label = 0.3) {
-  # Plot the background rate for species.
-  # ### Inputs
-  # ue_df: dataframe with results of UnitEvents inference. Must have columns:
-  #   time
-  #   excitefunc
-  #   from
-  #   to
-  # title: plot title
-  # textsize: text minimal size (for x and y axes)
-  # silhouettes: optional labels with animal silhouettes to replace 
-  #   default labels.
-  #   if it exists, must be a named vector with each name 
-  #   corresponding to a species name in ue_df. The elements are 
-  #   markdown codes containing a <img src='pato_to_image'/> element.
-  # write_label: write background rates values besides the points?
-  # nudge_label: if the background rates are written, by how much should they 
-  #   be nudged on the x-axis?
-  # ### Output
-  # a ggplot object, representing background rates for each species.
-  
+
   spont_plot <- ue_df %>% group_by(to) %>%
     summarise(spont = unique(spont)) %>%
     rename("species" = "to")
@@ -244,7 +238,7 @@ plot_background_rate <- function(ue_df,
           axis.text = element_text(size = textsize),
           axis.title.y = element_text(size = textsize*1.2),
           title = element_text(size = textsize*1.2)) +
-    ylab("Background rate (day⁻¹)")
+    ylab(expression(paste("Background rate (", day^{-1}, ")"))) 
   
   if(write_label) {
     g <- g + 
@@ -264,6 +258,28 @@ plot_background_rate <- function(ue_df,
   g
 }
 
+#' Plot graph
+#' 
+#' Plots a graph g.
+#'
+#' @param g The graph to plot (tbl_graph object)
+#' @param layout optional layout (defaults to layout_in_circle)
+#' @param repel repel node labels?
+#' @param coledges color of edges (a string color name)
+#' @param colnodes color of nodes (named vector named as species or a string
+#' color name). If it is NULL, species will be colored automatically.
+#' @param coltext color of text for the node labels. It can be a vector
+#' (will correspond to species alphabetical order),
+#' @param textsize node label size
+#' @param s size of nodes
+#' @param arrsize size of arrow
+#' @param nudge_x optional vector to move x labels for node labels.
+#' @param parse_labels parse text labels?
+#' @param use_labels_column use column 'label' for nodes labels?
+#'
+#' @return A ggplot object representing the graph.
+#' 
+#' @export
 plot_graph <- function(g, layout = c(), 
                        repel = FALSE,
                        coledges = 'grey', 
@@ -274,24 +290,6 @@ plot_graph <- function(g, layout = c(),
                        nudge_x = NA,
                        parse_labels = FALSE,
                        use_labels_column = FALSE){
-  # Plots a graph g.
-  # ### Inputs
-  # layout: optional layout (defaults to layout_in_circle)
-  # repel: repel node labels?
-  # coledges: color of edges (a string color name)
-  # colnodes: color of nodes (named vector named as species or a string
-  #   color name). If it is NULL, species will be colored automatically.
-  # coltext: color of text for the node labels. It can be a vector
-  #   (will correspond to species alphabetical order),
-  #   a named vector named as species or a string color name. 
-  # textsize: node label size
-  # s: size of nodes
-  # arrsize: size of arrow
-  # nudge_x: optional vector to move x labels for node labels.
-  # parse_labels: parse text labels?
-  # use_labels_column: use column 'label' for nodes labels?
-  # ### Output
-  # A ggplot object representing the graph of the Hawkes interaction model.
   
   if(length(layout) == 0){
     layout <- layout_in_circle(g)
@@ -299,8 +297,8 @@ plot_graph <- function(g, layout = c(),
   if(is.na(nudge_x)){
     nudge_x <- rep(0, length(V(g)))
   }
-  ar <- arrow(angle=30,length = unit(arrsize,"mm"),
-              ends="last", type = "closed")
+  ar <- grid::arrow(angle=30,length = unit(arrsize,"mm"),
+                    ends="last", type = "closed")
   alpha <- 1
   
   gr <- ggraph(g, layout = layout) + 
@@ -367,6 +365,40 @@ plot_graph <- function(g, layout = c(),
   gr
 }
 
+#' Plot rates
+#' 
+#' Plot the rate of an observed sequence of events.
+#'
+#' @param rates a dataframe with pre-computed rates. Must have columns:
+#'   time
+#'   lambda
+#'   species
+#' @param data the corresponding occurrence data. Must have columns:
+#'  stamp  
+#'  species
+#' @param timestep timestep to plot
+#' @param textsize base text size (axes text, 
+#' axes labels are a 2 units bigger)
+#' @param ptsize point sizes for the events
+#' @param lwd linewidth for intensities
+#' @param t1 minimal time bounds for subsetting data. If missing, then all data will be plotted.
+#' @param t2 maximal time bounds for subsetting data. If missing, then all data will be plotted.
+#' @param hlambda plot relative heights for intensity panels
+#' @param hpoints plot relative heights for points panels
+#' @param minor_spacing space between the intensity function 
+#' and the correponding points.
+#' @param major_spacing space between points and the following intensity.
+#' @param max_lambda max value for y-axis for rates
+#' @param ybreaks breaks for y-axis (for lambda plots)
+#' @param cols named vector for colors: names are species names and contain colors 
+#' @param ylabel display labels ?
+#' @param xlab xlabel to display (optional)
+#'
+#' @return A ggplot object generated with patchwork.
+#'   Multiple plots in the same column, where all plots are paired,
+#'   the top plot representing the intensity and the bottom plot the actual
+#'   occurrences for one species.
+#' @export
 plot_observed_rate <- function(rates, 
                                data, 
                                timestep = 2, 
@@ -382,37 +414,6 @@ plot_observed_rate <- function(rates,
                                cols,
                                ylabel = TRUE,
                                xlab = "Time (days)"){
-  # Plot the rate of an observed sequence of events.
-  # ### Inputs
-  # rates is a dataframe with pre-computed rates. Must have columns:
-  #   time
-  #   lambda
-  #   species
-  # data is the corresponding occurrence data.
-  #   columns:  stamp and species.
-  # timestep: timestep to plot
-  # textsize: base text size (axes text, 
-  #   axes labels are a 2 units bigger)
-  # ptsize: point sizes for the events
-  # t1 and t2 are time bounds for subsetting data. If missing, then all data will be plotted.
-  # lwd: linewidth for intensities
-  # hlambda and hpoints are plot relative heights resp. for lambda and points
-  # minor_spacing and major_spacing: the space to add between plots. 
-  #   minor_spacing is the space between the intensity function 
-  #   and the correponding points.
-  #   major_spacing is the space between points and the following intensity.
-  # Default resp. to hpoints/2 and hpoints.
-  # max_lambda: max value for y-axis for rates
-  # ybreaks: breaks for y-axis (for lambda plots)
-  # cols: named vector for colors: names are species names and
-  #   contain colors 
-  # ylabel: display labels ?
-  # xlab: xlabel to display (optional)
-  # ### Output 
-  # A ggplot object generated with patchwork.
-  #   Multiple plots in the same column, where all plots are paired,
-  #   the top plot representing the intensity and the bottom plot the actual
-  #   occurrences for one species.
   
   if(missing(t1)){
     t1 <- floor(min(data$stamp))
@@ -528,9 +529,10 @@ plot_observed_rate <- function(rates,
     }
     
     if(length(glist) == 0){
-      glist <- plot_spacer() + l + plot_spacer() + pt + plot_spacer()
+      glist <- patchwork::plot_spacer() + l + patchwork::plot_spacer() + 
+        pt + patchwork::plot_spacer()
     }else{
-      glist <- glist + l + plot_spacer() + pt + plot_spacer()
+      glist <- glist + l + patchwork::plot_spacer() + pt + patchwork::plot_spacer()
     }
   }
   
@@ -547,34 +549,38 @@ plot_observed_rate <- function(rates,
     & scale_x_continuous(limits = c(tmin, tmax),
                          breaks = seq(tmin, tmax, by = timestep),
                          expand = c(0.001, 0))) +
-    plot_layout(ncol = 1, 
-                heights = c(0.5*hpoints, # Top spacer
-                            rep(c(hlambda, minor_spacing, hpoints, major_spacing), length(species_list) -1),
-                            c(hlambda, minor_spacing, hpoints, 0.5*hpoints)) # Last plot with bottom spacer
-                )
+    patchwork::plot_layout(ncol = 1, 
+                           heights = c(0.5*hpoints, # Top spacer
+                                       rep(c(hlambda, minor_spacing, hpoints, major_spacing), length(species_list) -1),
+                                       c(hlambda, minor_spacing, hpoints, 0.5*hpoints)) # Last plot with bottom spacer
+                           )
   
 }
 
 
 # Simulation --------------------------------------------------------------
+
+#' Plot interaction function for simulation
+#' 
+#' Plots the inferred interaction functions vs the real function
+#' 
+#' @param df a dataframe containing values for the inferred function(s)
+#'   and the true function. It has columns:
+#'   rep: repetition ID (s... for simul, true for true data)
+#'   excitefunc: value of the excitation function
+#'   from/to: ID of the species
+#'   time: time in days
+#' @param title optional plot title
+#' @param level confidence level to use around simulations
+#'
+#' @return A ggplot of the interaction functions where the true function 
+#' is in red and the inferred function in blue with a confidence 
+#' interval (if there were several inferred models.)
+#' @export
 plot_interactions_simu <- function(df, 
                        title = NA, 
                        level = 0.05){
-  # Plots the inferred interaction functions vs the real function
-  # ### Inputs
-  # df: a dataframe containing values for the inferred function(s)
-  #   and the true function. It has columns:
-  #   rep: repetition ID (s... for simul, true for true data)
-  #   excitefunc: value of the excitation function
-  #   from/to: ID of the species
-  #   time: time in days
-  # title: optional plot title
-  # level: confidence level to use around simulations
-  # ### Output
-  # A ggplot of the interaction functions where the true function 
-  #   is in red and the inferred function in blue with a confidence 
-  #   interval (if there were several inferred models.)
-  
+
   simul <- df %>% filter(rep != "true")
   true <- df %>% filter(rep == "true")
   
@@ -588,7 +594,7 @@ plot_interactions_simu <- function(df,
   
   g <- ggplot(data = simul, aes(x = time))
   
-  g <- g + geom_stepribbon(aes(ymin = inf, ymax = sup), 
+  g <- g + pammtools::geom_stepribbon(aes(ymin = inf, ymax = sup), 
                            fill = "cornflowerblue", alpha = 0.5) +
     geom_step(aes(y = median), col = "blue") +
     geom_step(data = true, 
@@ -611,20 +617,23 @@ plot_interactions_simu <- function(df,
   g
 }
 
+#' Plot background rates for simulation
+#'
+#' Plots the inferred background rates vs the real rates
+#' 
+#' @param df the dataframe with true and estimated intensities. It has columns:
+#'   rep: repetition ID (s... for simul, true for true data)
+#'   excitefunc: value of the excitation function
+#'   from/to: ID of the species
+#'   time: time in days
+#' @param alpha confidence level for plotting 
+#' @param title optional plot title
+#'
+#' @return A ggplot of the background rates where the true rate 
+#' is in red and the inferred rate in blue with a confidence 
+#' interval (if there were several inferred models.)
+#' @export
 plot_background_rate_simu <- function(df, alpha = 0.05, title = NA){
-  # Plots the inferred background rates vs the real rates
-  # ### Inputs
-  # df: the dataframe with true and estimated intensities. It has columns:
-  #   rep: repetition ID (s... for simul, true for true data)
-  #   excitefunc: value of the excitation function
-  #   from/to: ID of the species
-  #   time: time in days
-  # alpha: confidence level for plotting 
-  # title: optional plot title
-  # ### Output
-  # A ggplot of the background rates where the true rate 
-  #   is in red and the inferred rate in blue with a confidence 
-  #   interval (if there were several inferred models.)
   
   # Get estimates
   spont_est <- df %>% filter(rep != "true") 
@@ -669,32 +678,35 @@ plot_background_rate_simu <- function(df, alpha = 0.05, title = NA){
   
 }
 
+#' Plots performance
+#' 
+#' Plots the performance of the inference.
+#' 
+#' @param d the dataframe of observed sensitivity and specificity.
+#'   It has columns:
+#'   value (sensitivity or specificity value)
+#'   type (sensitivity or specificity as "sensi" or "speci")
+#'   "xaxis" (a measure of trapping days)
+#'     possibly qinf, qsup (then quantiles are plotted arould sensitivity
+#'     and specificity values.)
+#' @param xaxis name of the x-axis to choose for plotting (must be present in d)
+#' @param thr optional threshold where to plot a horizontal line
+#' @param vline optional vline to plot to draw attention to a specific time
+#' @param psize point sizes
+#'
+#' @return a ggplot object with the sensitivity and specificity displayed along
+#' xaxis.
+#' @export
 plot_perf <- function(d, 
                       xaxis = "trapping_days", 
                       thr, 
                       vline,
                       psize = 1){
-  # Plots the performance of the inference.
-  # d: the dataframe of observed sensitivity and specificity.
-  #   It has columns:
-  #   value (sensitivity or specificity value)
-  #   type (sensitivity or specificity as "sensi" or "speci")
-  #   "xaxis" (a measure of trapping days)
-  #     possibly qinf, qsup (then quantiles are plotted arould sensitivity
-  #     and specificity values.)
-  # xaxis: name of the x-axis to choose for plotting 
-  #   (must be present in d)
-  # thr: optional threshold where to plot a horizontal line
-  # vline: optional vline to plot to draw attention to a specific time
-  # psize: point sizes
-  # ### Output
-  # a ggplot object with the sensitivity and specificity displayed along
-  #   xaxis.
   
   cols <- c("#1B9E77", "#7570B3")
   names(cols) <- c("sensi", "speci")
   
-  gbase <- ggplot(d, aes(x = !!sym(xaxis), 
+  gbase <- ggplot(d, aes(x = !!rlang::sym(xaxis), 
                          col = type, group = type)) +
     geom_point(aes(y = value, shape = type), size = psize) +
     geom_line(aes(y = median, linetype = type)) +
@@ -740,19 +752,25 @@ plot_perf <- function(d,
 
 # Bias --------------------------------------------------------------------
 
+#' Plot bias
+#' 
+#' Plots the bias for each interaction from several inferences.
+#'
+#' @param bias_df a dataframe containing the summarized results of the 
+#'   inference for several repetitions. Must have columns:
+#'   from and to (interacting species)
+#'   the column specified with 'fill'
+#' @param fill name of the column to use for values to fill the plot.
+#' @param textsize size of the text
+#'
+#' @return a ggplot tile with colors corresponding to the proportion
+#' of times the corresponding interaction was inferred.
+#' @export
 plot_bias <- function(bias_df, fill = "valprop", textsize = 12) {
-  # Plots the bias for each interaction from several inferences.
-  # ### Inputs
-  # bias_df: a dataframe containing the summarized results of the 
-  #   inference for several repetitions. Must have columns:
-  #   from and to (interacting species)
-  #   the column specified with 'fill'
-  # fill: name of the column to use for values to fill
-  #   the plot.
-  # textsize: size of the text
+  
   ggplot(bias_df) +
-    geom_tile(aes(y = from, x = to, fill = !!sym(fill))) +
-    scale_fill_viridis(limits = c(0, 1), name = "Proportion") +
+    geom_tile(aes(y = from, x = to, fill = !!rlang::sym(fill))) +
+    viridis::scale_fill_viridis(limits = c(0, 1), name = "Proportion") +
     coord_equal(expand = FALSE) +
     theme_linedraw() +
     theme(text = element_text(size = textsize),

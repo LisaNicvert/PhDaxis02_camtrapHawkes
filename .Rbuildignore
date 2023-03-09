@@ -1,0 +1,4 @@
+^analyses$
+^.*\.Rproj$
+^\.Rproj\.user$
+^data$
