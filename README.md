@@ -10,7 +10,14 @@ In order to run the analyses, the R package `UnitEvents` must first be installed
 To install `UnitEvents` (Lambert et al., 2018), see instructions to install from source [here](https://sourcesup.renater.fr/frs/?group_id=3267).
 
 ### Dependencies
-Other needed packages will automatically be loaded at the beginning of each analysis script. 
+
+In order to automatically install dependencies, the R package `devtools` must be intalled. It can be installed with:
+
+```r
+install.packages("devtools")
+```
+
+Then, other needed packages will automatically be loaded at the beginning of each analysis script. 
 
 The functions contained in `R/` are loaded with `devtools::load_all()`. 
 Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
