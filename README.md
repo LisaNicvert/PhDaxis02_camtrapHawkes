@@ -36,6 +36,9 @@ Other needed packages are loaded (and if needed, installed) for each analysis sc
 ## References
 Lambert, R. C., Tuleau-Malot, C., Bessaih, T., Rivoirard, V., Bouret, Y., Leresche, N., & Reynaud-Bouret, P. (2018). Reconstructing the functional connectivity of multiple spike trains using Hawkes models. Journal of Neuroscience Methods, 297, 9–21. https://doi.org/10.1016/j.jneumeth.2017.12.026
 
+Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). Using the Hawkes model to study spatio-temporal interactions between multiple species from camera trap data. [Manuscript in preparation]
+
+
 ## Session info
 
 Below is the output of the `sessionInfo()` for the machine that was used to run the code:
