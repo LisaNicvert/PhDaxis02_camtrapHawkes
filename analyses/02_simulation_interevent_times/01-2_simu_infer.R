@@ -37,29 +37,39 @@ n_cameras <- 30
 perm_count <- 999 # Number of permutation
 
 # --- Results writing
-out_dir <- here("outputs/02_simulation_interevent_times/simu_interevents_cluster")
-
-# Create results folder ---------------------------------------------------
-if(!dir.exists(out_dir)) {
-  print(paste("Create out_dir", out_dir))
-  dir.create(out_dir, recursive = TRUE)
-}
+out_dir_cluster <- here("outputs/02_simulation_interevent_times/simu_interevents_cluster")
+out_dir_local <- here("outputs/02_simulation_interevent_times/simu_local")
 
 # Parse parameters --------------------------------------------------------
-# args <- commandArgs(trailingOnly=TRUE)
-args <- c(0.1, 400, 1, 1)
+args <- commandArgs(trailingOnly = TRUE)
+# args <- c(0.1, 400, 1, 1, "true") # For test purposes if the script is not launched with launch_jobs.sh
 
 # test if there is at least one argument: if not, return an error
-if (length(args) != 4) {
-  stop("You must supply exactly 4 arguments: strength, Tmax, rep and i.")
+if (length(args) != 5) {
+  stop("You must supply exactly 5 arguments: strength, Tmax, rep, i and run_locally.")
 }
 
 strength <- as.numeric(args[1])
 Tmax <- as.numeric(args[2])
 rep <- as.numeric(args[3])
 i <- as.numeric(args[4]) # used only for seed
+local <- as.character(args[5])
 
+# Set seed
 set.seed(i)
+
+# Define results folder name
+if (local == "true") {
+  out_dir <- out_dir_local
+} else {
+  out_dir <- out_dir_cluster
+}
+
+# Create results folder ---------------------------------------------------
+if(!dir.exists(out_dir)) {
+  print(paste("Create out_dir", out_dir))
+  dir.create(out_dir, recursive = TRUE)
+}
 
 # Code --------------------------------------------------------------------
 
