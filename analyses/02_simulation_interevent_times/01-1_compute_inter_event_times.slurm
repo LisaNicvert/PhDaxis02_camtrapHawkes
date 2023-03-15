@@ -20,7 +20,7 @@ echo "i=${vari} (seed)"
 echo "run_locally=${varlocal}"
 
 
-if [ ! $varlocal ]; then
+if ! $varlocal ; then
   # --- Run on the cluster
   cd /beegfs/home/lnicvert/camtrapHawkes
   singularity run docker://gitlab-registry.in2p3.fr/stephane.delmotte/rocker_lbbe:master Rscript analyses/02_simulation_interevent_times/01-2_simu_infer.R $varstrength $vardtmax $varrep $vari $varlocal
