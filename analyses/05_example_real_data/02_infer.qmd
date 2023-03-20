@@ -119,7 +119,6 @@ ggsave(file.path(figures_path, "interactions.jpeg"),
 ```{r background_rates, fig.width=6, fig.height=4}
 # --- Plot
 plot_background_rate(ue_df = plt_ue,
-                     title = "Background rates",
                      textsize = 9,
                      write_label = TRUE,
                      silhouettes = silhouettes_labs)
