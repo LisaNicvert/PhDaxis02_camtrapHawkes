@@ -35,13 +35,12 @@ devtools::install_deps(upgrade = "never")
 # These packages will be installed only if they are not already installed
 
 ## 01_hawkes_process_simulation_example ------------------------------------
-packages <- c("here", "RColorBrewer", "igraph", "ggplot2",
-              "UnitEvents")
+packages <- c("here", "RColorBrewer", "ggplot2")
 base::lapply(packages, require)
 
 
 ## 02_simulation_interevent_times ------------------------------------------
-packages <- c("here", "foreach", "doParallel", "UnitEvents",
+packages <- c("here", "foreach", "doParallel",
               "magrittr", "dplyr", "tidyr")
 base::lapply(packages, require)
 
@@ -51,9 +50,9 @@ base::lapply(packages, require)
 
 ## 03_simulation_hawkes ----------------------------------------------------
 packages <- c("here", "foreach", "doParallel",
-              "gridExtra", "UnitEvents", 
-              "tidyr", "tibble", "dplyr",
-              "igraph", "ggplot2")
+              "gridExtra", 
+              "tidyr", "tibble", "dplyr", 
+              "ggplot2")
 base::lapply(packages, require)
 
 
@@ -70,12 +69,12 @@ base::lapply(packages, require)
 packages <- c("here", "dplyr", "lubridate", "ggplot2")
 base::lapply(packages, require)
 
-packages <- c("here", "lubridate", "UnitEvents",
+packages <- c("here", "lubridate",
               "ggplot2")
 base::lapply(packages, require)
 
 
 ## 06_circadian_rhythm -----------------------------------------------------
-packages <- c("here", "NHPoisson", "UnitEvents",
+packages <- c("here", "NHPoisson",
               "ggplot2", "tidyr", "dplyr")
 base::lapply(packages, require)
