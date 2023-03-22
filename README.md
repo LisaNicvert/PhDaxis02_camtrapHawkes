@@ -4,23 +4,42 @@ This repository contains the code to reproduce the analyses and figures from the
 
 ## Packages installation
 
-In order to run the analyses, the R packages `UnitEvents` and `devtools` must first be installed separately. Other needed packages will automatically be loaded at the beginning of each analysis script.
+In order to install the environment needed to run the analyses, you have two choices:
 
-### Install `UnitEvents`
+-   install the packages with R
+-   use a Docker
 
-To install `UnitEvents` (Lambert et al., 2018), see instructions to install from source [here](https://sourcesup.renater.fr/frs/?group_id=3267).
+### Install packages via R
 
-### Install `devtools`
+In order to run the analyses, some dependencies must be installed outside R for the package `UnitEvents`.
 
-In order to automatically install dependencies, the R package `devtools` must be installed. It can be installed with:
+#### Install `UnitEvents` dependencies
 
-``` r
-install.packages("devtools")
+See instructions to install to install `UnitEvents` (Lambert et al., 2018) from source [here](https://sourcesup.renater.fr/frs/?group_id=3267). The source version used for this analyses is also available in `UnitEvents_0.0.8.tar.gz`.
+
+#### Install other packages
+
+To install other needed packages, you can run the script `install_dependencies.R`. The required packages are sorted by analysis, so you can choose which packages to install depending on your needs.
+
+### Use Docker
+
+A Dockerfile will shortly be provided to allow to build a Docker and run the analyses inside this Docker. In order to build the Docker, use:
+
+```         
+docker build . -t camtrapHawkes_docker
+```
+
+Then you can use this Docker with:
+
+```         
+docker run camtrapHawkes_docker
 ```
 
 ### Details
 
-The functions contained in `R/` are loaded with `devtools::load_all()`. Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
+In each analysis script, the functions contained in `R/` are loaded with `devtools::load_all()`.
+
+Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
 
 ## Contents
 
