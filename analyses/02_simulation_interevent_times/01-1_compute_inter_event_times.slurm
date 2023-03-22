@@ -23,7 +23,7 @@ echo "run_locally=${varlocal}"
 if ! $varlocal ; then
   # --- Run on the cluster
   cd /beegfs/home/lnicvert/camtrapHawkes
-  singularity run docker://gitlab-registry.in2p3.fr/stephane.delmotte/rocker_lbbe:master Rscript analyses/02_simulation_interevent_times/01-2_simu_infer.R $varstrength $vardtmax $varrep $vari $varlocal
+  /beegfs/data/soft/singularity3.11.0/bin/singularity run docker://gitlab-registry.in2p3.fr/stephane.delmotte/rocker_lbbe:master Rscript analyses/02_simulation_interevent_times/01-2_simu_infer.R $varstrength $vardtmax $varrep $vari $varlocal
 else
   # --- Run locally 
   Rscript 01-2_simu_infer.R $varstrength $vardtmax $varrep $vari $varlocal

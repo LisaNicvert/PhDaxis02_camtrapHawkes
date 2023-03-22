@@ -11,6 +11,8 @@
 
 
 # Libraries ---------------------------------------------------------------
+# Install dependencies automatically (useful not to ask when script run with Rscript)
+devtools::install_deps(upgrade = "never")
 # Load functions from main folder
 devtools::load_all()
 
