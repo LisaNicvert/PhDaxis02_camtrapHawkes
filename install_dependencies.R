@@ -36,7 +36,7 @@ devtools::install_deps(upgrade = "never")
 # Packages needed per analyses --------------------------------------------
 # These packages will be installed only if they are not already installed
 
-devtools::load_all() # To load custom 'require' function
+library(camtrapHawkes) # To load custom 'require' function
 
 ## 01_hawkes_process_simulation_example ------------------------------------
 packages <- c("here", "RColorBrewer", "ggplot2")

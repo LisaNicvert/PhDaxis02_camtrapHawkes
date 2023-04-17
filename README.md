@@ -50,14 +50,13 @@ sudo docker build . -t camtrap_hawkes_docker
 Then, install required R packages. For that, connect to the interactive Docker interface (replace `[your_home]` with your home directory name).
 
 ```{bash}
-sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker bash
+sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker bash
 ```
 
-Then, inside Docker, set the default library path for R packages. Here, we choose `/usr/local/lib/R/site-library` but you can use a different path:
+Then, inside Docker, set the default library path for R packages. Here, we choose the local R library (`/home/ubuntu/R`) but you can use a different path (only make sure the directory already exists):
 
 ```{bash}
-> mkdir /usr/local/lib/R/site-library
-> export R_LIBS="/usr/local/lib/R/site-library"
+> export R_LIBS="/home/ubuntu/R"
 ```
 
 Finally, run the `install_dependencies.R` script inside the Docker in order to install the required R packages :
@@ -72,7 +71,7 @@ Finally, run the `install_dependencies.R` script inside the Docker in order to i
 To run the analyses, you can run Rstudio inside the Docker:
 
 ```{bash}
-sudo docker run -v /home/[your_home]:/root -p 8787:8787 -e PASSWORD=[pwd] camtrap_hawkes_docker
+sudo docker run -v /home/[your_home]:/home/ubuntu -p 8787:8787 -e PASSWORD=[pwd] camtrap_hawkes_docker
 ```
 
 Then connect to port 8787 of the machine with the user `rstudio` and the password `[pwd]`.
@@ -82,12 +81,12 @@ For instance, on your web browser, you would use the following URL: [`http://loc
 You can also use the interactive mode of Docker to render Quarto documents or run scripts:
 
 ```{bash}
-sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker R
+sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker R
 > quarto::quarto_render([path_to_qmd])
 ```
 
 ```{bash}
-sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker bash
+sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker bash
 > Rscript [path_to_script]
 ```
 
