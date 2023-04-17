@@ -47,16 +47,16 @@ In order to build the Docker, navigate to the directory containing the Dockerfil
 sudo docker build . -t camtrap_hawkes_docker
 ```
 
-Then, install required R packages. For that, connect to the interactive Docker interface (replace `[your_home]` with your home directory name).
+Then, install required R packages. For that, connect to the interactive Docker interface:
 
 ```{bash}
-sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker bash
+sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 ```
 
-Then, inside Docker, set the default library path for R packages. Here, we choose the local R library (`/home/ubuntu/R`) but you can use a different path (only make sure the directory already exists):
+Then, inside Docker, set the default library path for R packages. Here, we choose the local R library (`/home/ubuntu/Rx86_64-pc-linux-gnu-library/4.2`) but you can use a different path (only make sure the directory already exists):
 
 ```{bash}
-> export R_LIBS="/home/ubuntu/R"
+> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
 ```
 
 Finally, run the `install_dependencies.R` script inside the Docker in order to install the required R packages :
@@ -68,27 +68,34 @@ Finally, run the `install_dependencies.R` script inside the Docker in order to i
 
 #### Run analyses
 
-To run the analyses, you can run Rstudio inside the Docker:
+Note: you will need to specify the library to use each time you run the Docker using `export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"`.
+
+To run the analyses, you can use the interactive mode of Docker.
+
+-   To render Quarto documents:
 
 ```{bash}
-sudo docker run -v /home/[your_home]:/home/ubuntu -p 8787:8787 -e PASSWORD=[pwd] camtrap_hawkes_docker
-```
-
-Then connect to port 8787 of the machine with the user `rstudio` and the password `[pwd]`.
-
-For instance, on your web browser, you would use the following URL: [`http://localhost:8787`](http://localhost:8787). When prompted to enter credentials, use the user `rstudio` and the password `[pwd]`.
-
-You can also use the interactive mode of Docker to render Quarto documents or run scripts:
-
-```{bash}
-sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker R
+sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
+> R
 > quarto::quarto_render([path_to_qmd])
 ```
 
 ```{bash}
-sudo docker run -it -v /home/[your_home]/:/home/ubuntu camtrap_hawkes_docker bash
+sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
 > Rscript [path_to_script]
 ```
+
+To run the analyses, you can run Rstudio inside the Docker:
+
+```{bash}
+docker run -v $HOME:/home/ubuntu -p 8787:8787 -e PASSWORD=pwd camtrap_hawkes_docker
+```
+
+Then connect to port 8787 of the machine with the user `rstudio` and the password `pwd`.
+
+For instance, on your web browser, you would use the following URL: [`http://localhost:8787`](http://localhost:8787). When prompted to enter credentials, use the user `rstudio` and the password `pwd`.
 
 ### Details
 
@@ -115,86 +122,3 @@ Other needed packages are loaded (and if needed, installed) for each analysis sc
 Lambert, R. C., Tuleau-Malot, C., Bessaih, T., Rivoirard, V., Bouret, Y., Leresche, N., & Reynaud-Bouret, P. (2018). Reconstructing the functional connectivity of multiple spike trains using Hawkes models. Journal of Neuroscience Methods, 297, 9--21. <https://doi.org/10.1016/j.jneumeth.2017.12.026>
 
 Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). Using the Hawkes model to study spatio-temporal interactions between multiple species from camera trap data. [Manuscript in preparation]
-
-## Session info
-
-Below is the output of the `sessionInfo()` for the machine that was used to run the code:
-
-``` r
-> sessionInfo()
-R version 4.1.3 (2022-03-10)
-Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.5 LTS
-
-Matrix products: default
-BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
-LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
-
-locale:
- [1] LC_CTYPE=fr_FR.UTF-8       LC_NUMERIC=C              
- [3] LC_TIME=fr_FR.UTF-8        LC_COLLATE=fr_FR.UTF-8    
- [5] LC_MONETARY=fr_FR.UTF-8    LC_MESSAGES=fr_FR.UTF-8   
- [7] LC_PAPER=fr_FR.UTF-8       LC_NAME=C                 
- [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-[11] LC_MEASUREMENT=fr_FR.UTF-8 LC_IDENTIFICATION=C       
-
-attached base packages:
- [1] stats4    grid      parallel  stats     graphics  grDevices
- [7] utils     datasets  methods   base     
-
-other attached packages:
- [1] NHPoisson_3.3            camtrapHawkes_0.0.0.9000
- [3] lubridate_1.9.2          osmdata_0.1.10          
- [5] ggsn_0.5.0               rgdal_1.5-32            
- [7] sp_1.4-5                 sf_1.0-7                
- [9] tibble_3.1.8             gridExtra_2.3           
-[11] tidyr_1.2.0              dplyr_1.1.0             
-[13] magrittr_2.0.3           doParallel_1.0.16       
-[15] iterators_1.0.13         foreach_1.5.2           
-[17] UnitEvents_0.0.8         ggplot2_3.4.1           
-[19] igraph_1.3.5             RColorBrewer_1.1-2      
-[21] here_1.0.1              
-
-loaded via a namespace (and not attached):
-  [1] readxl_1.3.1        backports_1.2.1     plyr_1.8.6         
-  [4] lazyeval_0.2.2      splines_4.1.3       usethis_2.1.6      
-  [7] digest_0.6.29       htmltools_0.5.4     viridis_0.6.1      
- [10] fansi_1.0.4         checkmate_2.0.0     memoise_2.0.1      
- [13] openxlsx_4.2.4      remotes_2.4.2       graphlayouts_0.7.1 
- [16] timechange_0.2.0    prettyunits_1.1.1   jpeg_0.1-8.1       
- [19] colorspace_2.0-3    ggrepel_0.9.1       haven_2.4.1        
- [22] xfun_0.31           callr_3.7.3         crayon_1.5.0       
- [25] survival_3.2-11     glue_1.6.2          polyclip_1.10-0    
- [28] gtable_0.3.0        car_3.0-11          pkgbuild_1.4.0     
- [31] abind_1.4-5         scales_1.2.1        mvtnorm_1.1-2      
- [34] DBI_1.1.1           miniUI_0.1.1.1      Rcpp_1.0.8         
- [37] viridisLite_0.4.0   xtable_1.8-4        gridtext_0.1.4     
- [40] units_0.7-2         foreign_0.8-81      proxy_0.4-26       
- [43] Formula_1.2-4       lava_1.6.9          prodlim_2019.11.13 
- [46] profvis_0.3.7       htmlwidgets_1.6.1   httr_1.4.2         
- [49] ellipsis_0.3.2      urlchecker_1.0.1    pkgconfig_2.0.3    
- [52] farver_2.1.0        utf8_1.2.3          tidyselect_1.2.0   
- [55] rlang_1.0.6         later_1.2.0         cellranger_1.1.0   
- [58] munsell_0.5.0       tools_4.1.3         cachem_1.0.5       
- [61] cli_3.6.0           generics_0.1.3      ggmap_3.0.0        
- [64] devtools_2.4.5      stringr_1.5.0       fastmap_1.1.0      
- [67] processx_3.8.0      knitr_1.39          fs_1.6.1           
- [70] timereg_2.0.0       tidygraph_1.2.0     zip_2.2.0          
- [73] purrr_0.3.4         RgoogleMaps_1.4.5.3 ggraph_2.1.0       
- [76] pec_2020.11.17      nlme_3.1-152        mime_0.10          
- [79] xml2_1.3.2          brio_1.1.3          compiler_4.1.3     
- [82] rstudioapi_0.13     curl_4.3.1          png_0.1-7          
- [85] e1071_1.7-7         testthat_3.1.6      tweenr_1.0.2       
- [88] stringi_1.7.12      ps_1.6.0            desc_1.4.2         
- [91] forcats_0.5.1       lattice_0.20-44     Matrix_1.3-4       
- [94] classInt_0.4-3      vctrs_0.5.2         pillar_1.8.1       
- [97] lifecycle_1.0.3     pammtools_0.5.7     data.table_1.14.8  
-[100] bitops_1.0-7        maptools_1.1-1      httpuv_1.6.1       
-[103] patchwork_1.1.1     R6_2.5.1            promises_1.2.0.1   
-[106] rio_0.5.27          KernSmooth_2.23-20  sessioninfo_1.2.2  
-[109] codetools_0.2-18    MASS_7.3-54         pkgload_1.3.2      
-[112] rprojroot_2.0.2     rjson_0.2.20        withr_2.5.0        
-[115] hms_1.1.0           mgcv_1.8-36         ggtext_0.1.1       
-[118] class_7.3-19        carData_3.0-4       ggforce_0.3.3      
-[121] numDeriv_2016.8-1.1 shiny_1.6.0      
-```
