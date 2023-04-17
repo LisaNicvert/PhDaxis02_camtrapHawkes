@@ -37,7 +37,7 @@ n_cameras <- 30
 perm_count <- 999 # Number of permutation
 
 # --- Results writing
-out_dir_cluster <- here("outputs/02_simulation_interevent_times/simu_interevents_cluster_test")
+out_dir_cluster <- here("outputs/02_simulation_interevent_times/simu_interevents_cluster")
 out_dir_local <- here("outputs/02_simulation_interevent_times/simu_local")
 
 # Parse parameters --------------------------------------------------------
