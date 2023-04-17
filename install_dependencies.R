@@ -31,6 +31,10 @@ install.packages("devtools")
 devtools::install_deps(upgrade = "never")
 
 
+# Install Quarto ----------------------------------------------------------
+# Needed to render Quarto documents
+install.packages("quarto")
+
 # Packages needed per analyses --------------------------------------------
 # These packages will be installed only if they are not already installed
 
