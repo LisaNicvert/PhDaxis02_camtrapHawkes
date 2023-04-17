@@ -2,3 +2,4 @@
 .Rhistory
 .Rproj.user/
 outputs/02_simulation_interevent_times/sbatch
+analyses/run_all.R

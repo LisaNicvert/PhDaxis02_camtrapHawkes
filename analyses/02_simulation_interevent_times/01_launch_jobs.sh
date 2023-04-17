@@ -14,7 +14,7 @@ tmaxlist=20
 nrep=1
 
 # --- Run the script locally or on a computing cluster?
-run_locally=false
+run_locally=true
 
 if ! $run_locally ; then
   # ========== navigate to directory ==========

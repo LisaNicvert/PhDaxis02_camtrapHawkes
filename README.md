@@ -7,32 +7,88 @@ This repository contains the code to reproduce the analyses and figures from the
 In order to install the environment needed to run the analyses, you have two choices:
 
 -   install the packages with R
--   use a Docker
+-   use [Docker](https://www.docker.com/)
 
 ### Install packages via R
 
-In order to run the analyses, some dependencies must be installed outside R for the package `UnitEvents`.
-
 #### Install `UnitEvents` dependencies
 
-See instructions to install to install `UnitEvents` (Lambert et al., 2018) from source [here](https://sourcesup.renater.fr/frs/?group_id=3267). The source version used for this analyses is also available in `UnitEvents_0.0.8.tar.gz`.
+In order to run the analyses, some dependencies must be installed outside R for the package `UnitEvents` (Lambert et al., 2018).
+
+-   **Installing dependencies on Linux:** run the following command in the terminal:
+
+```{bash}
+sudo apt install cmake g++ git subversion
+```
+
+-   **Installing dependencies on Mac OS**: you will need to configure a command line installer like [MacPorts](https://www.macports.org/) of [Homebrew](https://brew.sh/). A C++ compiler should also have been installed before (through Xcode for example). Assuming MacPorts is installed, run:
+
+```{bash}
+sudo port install cmake subversion git
+```
+
+-   **Windows**: installing `UnitEvents 0.0.8` on Windows is not yet possible.
+
+The up-to-date repository and instructions to install to install `UnitEvents` can also be found on [the development team repository](https://sourcesup.renater.fr/frs/?group_id=3267).
 
 #### Install other packages
 
-To install other needed packages, you can run the script `install_dependencies.R`. The required packages are sorted by analysis, so you can choose which packages to install depending on your needs.
+To install the needed R packages (including `UnitEvents`, once the dependencies above have been installed), you can run the script `install_dependencies.R`. The required packages are sorted by analysis, so you can choose which packages to install depending on your needs.
 
 ### Use Docker
 
-A Dockerfile will shortly be provided to allow to build a Docker and run the analyses inside this Docker. In order to build the Docker, use:
+#### Build the Docker
 
-```         
-docker build . -t camtrapHawkes_docker
+The `Dockerfile` provided at the root of the repository allows to build a Docker installing the required dependencies.
+
+In order to build the Docker, navigate to the directory containing the Dockerfile use:
+
+```{bash}
+sudo docker build . -t camtrap_hawkes_docker
 ```
 
-Then you can use this Docker with:
+Then, install required R packages. For that, connect to the interactive Docker interface (replace `[your_home]` with your home directory name).
 
-```         
-docker run camtrapHawkes_docker
+```{bash}
+sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker bash
+```
+
+Then, inside Docker, set the default library path for R packages. Here, we choose `/usr/local/lib/R/site-library` but you can use a different path:
+
+```{bash}
+> mkdir /usr/local/lib/R/site-library
+> export R_LIBS="/usr/local/lib/R/site-library"
+```
+
+Finally, run the `install_dependencies.R` script inside the Docker in order to install the required R packages :
+
+```{bash}
+> cd /opt/camtrapHawkes
+> Rscript install_dependencies.R
+```
+
+#### Run analyses
+
+To run the analyses, you can run Rstudio inside the Docker:
+
+```{bash}
+sudo docker run -v /home/[your_home]:/root -p 8787:8787 -e PASSWORD=[pwd] camtrap_hawkes_docker
+```
+
+Then connect to port 8787 of the machine with the user `rstudio` and the password `[pwd]`.
+
+For instance, on your web browser, you would use the following URL: [`http://localhost:8787`](http://localhost:8787). When prompted to enter credentials, use the user `rstudio` and the password `[pwd]`.
+
+You can also use the interactive mode of Docker to render Quarto documents or run scripts:
+
+```{bash}
+sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker R
+> quarto::quarto_render([path_to_qmd])
+```
+
+```{bash}
+sudo docker run -it -v /home/[your_home]/:/root camtrap_hawkes_docker bash
+> Rscript [path_to_script]
 ```
 
 ### Details
@@ -51,6 +107,9 @@ Other needed packages are loaded (and if needed, installed) for each analysis sc
 -   `R/` contains the R functions developed for this project
 -   `DESCRIPTION` contains the project metadata (author, date, dependencies, etc.)
 -   `NAMESPACE` contains the namespace information for the functions in the `R/` folder.
+-   `install_dependencies.R`: R script to install all R libraries.
+-   `UnitEvents_0.0.8.tar.gz`: source package for `UnitEvents`.
+-   `Dockerfile`: the file to create a Docker environment
 
 ## References
 
