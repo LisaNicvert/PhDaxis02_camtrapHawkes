@@ -25,9 +25,14 @@ install.packages('UnitEvents_0.0.8.tar.gz',
 # Needed to render Quarto documents
 install.packages("quarto")
 
+
+# Install devtools --------------------------------------------------------
+# Needed for install_local
+install.packages("devtools")
+
 ## Install camtrapHawkes ---------------------------------------------------
-# This is the custom package in the R/ subdirectory
-install.packages(".", repos = NULL)
+# # This is the custom package in the R/ subdirectory
+devtools::install_local(upgrade = "never")
 
 # Packages needed per analyses --------------------------------------------
 # These packages will be installed only if they are not already installed

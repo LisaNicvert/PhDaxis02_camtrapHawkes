@@ -41,22 +41,25 @@ To install the needed R packages (including `UnitEvents`, once the dependencies 
 
 The `Dockerfile` provided at the root of the repository allows to build a Docker installing the required dependencies.
 
-In order to build the Docker, navigate to the directory containing the Dockerfile use:
+In order to build the Docker, navigate to the directory containing the Dockerfile and use:
 
 ```{bash}
-sudo docker build . -t camtrap_hawkes_docker
+docker build . -t camtrap_hawkes_docker
 ```
+
+(You need admin privileges to run Docker; either add your user to the Docker group (`sudo groupadd docker`), use `sudo` or run as `root`).
 
 Then, install required R packages. For that, connect to the interactive Docker interface:
 
 ```{bash}
-sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 ```
 
-Then, inside Docker, set the default library path for R packages. Here, we choose the local R library (`/home/ubuntu/Rx86_64-pc-linux-gnu-library/4.2`) but you can use a different path (only make sure the directory already exists):
+Then, inside Docker, set the default library path for R packages. Here, we will use (`/home/ubuntu/R_camtrapHawkes` but you can use a different path (only make sure the directory already exists):
 
 ```{bash}
-> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
+> mkdir /home/ubuntu/R_camtrapHawkes
+> export R_LIBS="/home/ubuntu/R_camtrapHawkes"
 ```
 
 Finally, run the `install_dependencies.R` script inside the Docker in order to install the required R packages :
@@ -68,15 +71,15 @@ Finally, run the `install_dependencies.R` script inside the Docker in order to i
 
 #### Run analyses
 
-Note: you will need to specify the library to use each time you run the Docker using `export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"`.
+Note: you will need to specify the library to use each time you run the Docker using `export R_LIBS="/home/ubuntu/R_camtrapHawkes"`.
 
 To run the analyses, you can use the interactive mode of Docker.
 
 -   To render Quarto documents:
 
 ```{bash}
-sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
-> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
+docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+> export R_LIBS="/home/ubuntu/R_camtrapHawkes"
 > R
 > quarto::quarto_render([path_to_qmd])
 ```
@@ -84,15 +87,15 @@ sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 -   To run R scripts:
 
 ```{bash}
-sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
-> export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
+docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+> export R_LIBS="/home/ubuntu/R_camtrapHawkes"
 > Rscript [path_to_script]
 ```
 
 You can also run Rstudio inside the Docker:
 
 ```{bash}
-docker run -v $HOME:/home/ubuntu -p 8787:8787 -e PASSWORD=pwd camtrap_hawkes_docker
+docker run -v $HOME:/home/rstudio -p 8787:8787 -e PASSWORD=pwd camtrap_hawkes_docker
 ```
 
 Then connect to port 8787 of the machine with the user `rstudio` and the password `pwd`.
@@ -101,7 +104,7 @@ For instance, on your web browser, you would use the following URL: [`http://loc
 
 ### Details
 
-In each analysis script, the functions contained in `R/` are loaded with `devtools::load_all()`.
+In each analysis script, the functions contained in `R/` are loaded with `library(camtrapHawkes)`.
 
 Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
 
