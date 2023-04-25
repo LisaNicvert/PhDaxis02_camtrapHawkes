@@ -30,9 +30,13 @@ install.packages("quarto")
 # Needed for install_local
 install.packages("devtools")
 
+# Install rlang --------------------------------------------------------
+# To update rlang
+install.packages("rlang")
+
 ## Install camtrapHawkes ---------------------------------------------------
 # # This is the custom package in the R/ subdirectory
-devtools::install_local(upgrade = "always")
+devtools::install_local(upgrade = "never")
 
 # Packages needed per analyses --------------------------------------------
 # These packages will be installed only if they are not already installed
