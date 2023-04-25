@@ -32,7 +32,7 @@ install.packages("devtools")
 
 ## Install camtrapHawkes ---------------------------------------------------
 # # This is the custom package in the R/ subdirectory
-devtools::install_local(upgrade = "never")
+devtools::install_local(upgrade = "always")
 
 # Packages needed per analyses --------------------------------------------
 # These packages will be installed only if they are not already installed
