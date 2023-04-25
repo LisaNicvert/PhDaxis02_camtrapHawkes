@@ -15,7 +15,7 @@ This code infers the parameters of a Hawkes process between five animal species 
 
 ```{r, message = FALSE, output = FALSE}
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 packages <- c("here", "lubridate", "UnitEvents",
               "ggplot2")

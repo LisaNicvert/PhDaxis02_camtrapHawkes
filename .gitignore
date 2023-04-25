@@ -3,4 +3,3 @@
 .Rproj.user/
 outputs/02_simulation_interevent_times/sbatch
 outputs/02_simulation_interevent_times/simu_local
-analyses/run_all.R

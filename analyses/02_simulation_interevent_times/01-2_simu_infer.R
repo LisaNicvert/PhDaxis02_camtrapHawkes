@@ -12,7 +12,7 @@
 
 # Libraries ---------------------------------------------------------------
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 # Load additional packages
 packages <- c("here", "foreach", "doParallel", "UnitEvents",

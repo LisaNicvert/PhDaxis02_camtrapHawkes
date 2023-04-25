@@ -15,7 +15,7 @@ This code analyzes inter-event times computed on data simulated with Hawkes proc
 
 ```{r, message = FALSE, output = FALSE}
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 # Load additional packages
 packages <- c("here", "dplyr", "tidyr", "ggplot2")

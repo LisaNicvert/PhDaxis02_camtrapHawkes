@@ -9,7 +9,7 @@
 
 # 1. Import libraries --------------------------------------------------
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 packages <- c("here", "dplyr", "lubridate", "ggplot2")
 base::lapply(packages, require)

@@ -81,13 +81,15 @@ sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 > quarto::quarto_render([path_to_qmd])
 ```
 
+-   To run R scripts:
+
 ```{bash}
 sudo docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 > export R_LIBS="/home/ubuntu/R/x86_64-pc-linux-gnu-library/4.2"
 > Rscript [path_to_script]
 ```
 
-To run the analyses, you can run Rstudio inside the Docker:
+You can also run Rstudio inside the Docker:
 
 ```{bash}
 docker run -v $HOME:/home/ubuntu -p 8787:8787 -e PASSWORD=pwd camtrap_hawkes_docker

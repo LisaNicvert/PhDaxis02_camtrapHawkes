@@ -15,7 +15,7 @@ This code simulates species occurrences with circadian rhythms (using non-homoge
 
 ```{r, message = FALSE, output = FALSE}
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 packages <- c("here", "NHPoisson", "UnitEvents",
               "ggplot2", "tidyr", "dplyr")

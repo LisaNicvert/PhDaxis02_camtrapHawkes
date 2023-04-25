@@ -15,7 +15,7 @@ This code simulates data under a Hawkes process and then infers the interactions
 
 ```{r, message = FALSE, output = FALSE}
 # Load functions from main folder
-devtools::load_all()
+library(camtrapHawkes)
 
 # Load additional packages
 packages <- c("here", "foreach", "doParallel",
@@ -47,7 +47,7 @@ spont <- 0.1 # background rate
 nspecies <- 5 # number of interacting species
 
 # Simulation params -----
-perform_simu <- TRUE # perform the simulation or not?
+perform_simu <- FALSE # perform the simulation or not?
 # Since running the simulation might be quite long (around 2 hours),
 # a RDS file with the realized simulations is also provided.
 

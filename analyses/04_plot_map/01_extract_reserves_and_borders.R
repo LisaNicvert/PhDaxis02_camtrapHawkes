@@ -10,7 +10,7 @@
 
 # Import libraries --------------------------------------------------------
 # Load functions from main folder (for the require function)
-devtools::load_all()
+library(camtrapHawkes)
 
 packages <- c("here", "dplyr", 
               "sf", "sp", "rgdal", "ggsn", "osmdata")
