@@ -2,3 +2,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^data$
+^outputs$
+^figures$
+^UnitEvents_0\.0\.8\.tar\.gz$
+^Dockerfile$
+^install_dependencies\.R$
+^README\.md$
