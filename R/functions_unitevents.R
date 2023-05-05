@@ -126,8 +126,10 @@ get_bins_sum <- function(M) {
 #' Get the sum of the bins for a list of Hawkes model.
 #' 
 #' @param Mlist Mlist: a list of interaction matrix(K*K*Ncomp array)
-#'   (K species and Ncomp different comportments (often Ncomp =1))
+#' (K species and Ncomp different comportments (often Ncomp =1))
 #'
+#' @export
+#' 
 #' @return A K*K matrix containing the number of times each value was inferred
 get_bins_sum_list <- function(Mlist) {
   
