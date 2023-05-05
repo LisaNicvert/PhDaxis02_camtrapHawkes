@@ -1,2 +1,4 @@
+## Data
+
 Camera trap data from the Snapshot Safari South Africa project. See the reference publication for more details: Pardo, L. E., Bombaci, S. P., Huebner, S., Somers, M. J., Fritz, H., Downs, C., Guthmann, A., Hetem, R. S., Keith, M., le Roux, A., Mgqatsa, N., Packer, C., Palmer, M. S., Parker, D. M., Peel, M., Slotow, R., Strauss, W. M., Swanepoel, L., Tambling, C., … Venter, J. A. (2021). Snapshot Safari: A large-scale collaborative to monitor Africa’s remarkable biodiversity. South African Journal of Science, 117(1/2). https://doi.org/10.17159/sajs.2021/8134
 

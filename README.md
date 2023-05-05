@@ -41,13 +41,13 @@ To install the needed R packages (including `UnitEvents`, once the dependencies 
 
 The `Dockerfile` provided at the root of the repository allows to build a Docker installing the required dependencies.
 
+*NB: You need admin privileges to run Docker; either add your user to the Docker group (`sudo groupadd docker`), use `sudo` or run as `root`.*
+
 In order to build the Docker, navigate to the directory containing the Dockerfile and use:
 
 ```{bash}
 docker build . -t camtrap_hawkes_docker
 ```
-
-(You need admin privileges to run Docker; either add your user to the Docker group (`sudo groupadd docker`), use `sudo` or run as `root`).
 
 Then, install required R packages. For that, connect to the interactive Docker interface:
 
@@ -75,6 +75,14 @@ Note: you will need to specify the library to use each time you run the Docker u
 
 To run the analyses, you can use the interactive mode of Docker.
 
+-   To run all scripts (except the simulation of inter-event times in `analyses/02_simulation_interevent_times/` that cannot be run locally):
+
+```{bash}
+docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
+> export R_LIBS="/home/ubuntu/R_camtrapHawkes"
+> Rscript camtrapHawkes/analyses/run_all.R
+```
+
 -   To render Quarto documents:
 
 ```{bash}
@@ -91,16 +99,6 @@ docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 > export R_LIBS="/home/ubuntu/R_camtrapHawkes"
 > Rscript [path_to_script]
 ```
-
-You can also run Rstudio inside the Docker:
-
-```{bash}
-docker run -v $HOME:/home/rstudio -p 8787:8787 -e PASSWORD=pwd camtrap_hawkes_docker
-```
-
-Then connect to port 8787 of the machine with the user `rstudio` and the password `pwd`.
-
-For instance, on your web browser, you would use the following URL: [`http://localhost:8787`](http://localhost:8787). When prompted to enter credentials, use the user `rstudio` and the password `pwd`.
 
 ### Details
 

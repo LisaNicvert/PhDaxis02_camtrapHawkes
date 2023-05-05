@@ -1,20 +1,27 @@
 #!/bin/bash
 
 # ========== Simulation parameters ==========
+
+#############################################################################
+#   /!\ if run_locally, then don't run the simulations with the whole set   #
+#   of parameters (it would take too much time); instead use the commented  #
+#   values below each parameter set.                                        #
+#############################################################################
+
 # --- Initialize strength list
-# strengthlist=(0.01 0.1 0.2 0.5 1)
-strengthlist=0.01
+strengthlist=(0.01 0.1 0.2 0.5 1)
+# strengthlist=0.01
 
 # --- Initialize Tmax list
-# tmaxlist=(20 100 300 400 500)
-tmaxlist=20
+tmaxlist=(20 100 300 400 500)
+# tmaxlist=20
 
 # --- Initialize nrep (used for R seed)
-# nrep=30
-nrep=1
+nrep=30
+# nrep=1
 
 # --- Run the script locally or on a computing cluster?
-run_locally=true
+run_locally=false
 
 if ! $run_locally ; then
   # ========== navigate to directory ==========

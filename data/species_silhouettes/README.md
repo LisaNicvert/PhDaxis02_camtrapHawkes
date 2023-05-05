@@ -1,4 +1,4 @@
-# Sources for the pictures
+## Sources for the pictures
 
 All images were retrieved from [PhyloPic](https://www.phylopic.org/):
 
