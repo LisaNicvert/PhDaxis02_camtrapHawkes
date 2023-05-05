@@ -57,7 +57,7 @@ Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
 nrep_each <- 30 # repeat each simulation x times
 
 # Inference params -----
-perform_inference <- TRUE # perform the inference or not?
+perform_inference <- FALSE # perform the inference or not?
 # Since running the inference takes a few minutes, a RDS fils
 # with the realized simulations is also provided.
 

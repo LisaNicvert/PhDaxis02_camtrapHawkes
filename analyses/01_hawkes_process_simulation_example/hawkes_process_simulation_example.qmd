@@ -19,7 +19,7 @@ library(camtrapHawkes)
 
 # Load additional packages
 packages <- c("here", "RColorBrewer", "igraph", "ggplot2",
-              "UnitEvents")
+              "UnitEvents", "dplyr", "magrittr", "tidygraph")
 base::lapply(packages, require)
 
 set.seed(5)
