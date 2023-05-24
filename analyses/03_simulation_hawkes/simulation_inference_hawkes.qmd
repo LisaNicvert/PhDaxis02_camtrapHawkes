@@ -54,7 +54,7 @@ perform_simu <- TRUE # perform the simulation or not?
 n_cameras <- 30 # number of cameras
 Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
 
-nrep_each <- 30 # repeat each simulation x times
+nrep_each <- 25 # repeat each simulation x times
 
 # Inference params -----
 perform_inference <- TRUE # perform the inference or not?
