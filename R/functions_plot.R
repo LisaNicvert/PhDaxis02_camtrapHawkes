@@ -75,10 +75,10 @@ plot_interactions <- function(ue_df,
     geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
-                       sec.axis = dup_axis(name = "To..."),
+                       sec.axis = dup_axis(name = "Second species"),
                        breaks = seq(0, max(ue_df_plot$time), by = timestep),
                        limits = c(0, max(ue_df_plot$time))) +
-    ylab("From...") +
+    ylab("First species") +
     theme_linedraw() +
     theme(axis.text.x.top = element_blank(),
           axis.ticks.x.top = element_blank(),

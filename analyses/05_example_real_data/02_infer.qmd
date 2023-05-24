@@ -90,6 +90,8 @@ inf <- infer(dat,
 ### Plot interactions
 
 ```{r interactions, fig.width=8, fig.height=8}
+library(camtrapHawkes)
+
 # --- Format inferred model
 u_inf <- unpack_inf(inf, 
                     species_names = spp_names, 
