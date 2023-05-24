@@ -89,7 +89,7 @@ create_funcshape <- function(funcshape, times, t = 0.5, strength){
 
   if(funcshape == "exp"){
     # Create non-zero interaction function
-    fs <- strength*exp(log(1/2)/t*times)
+    fs <- strength*exp(-(log(2)/t)*times)
     
   }else if(funcshape == "gamma"){
     sh <- 7.5
