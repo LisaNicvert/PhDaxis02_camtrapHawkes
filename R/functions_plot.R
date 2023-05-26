@@ -75,10 +75,10 @@ plot_interactions <- function(ue_df,
     geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
-                       sec.axis = dup_axis(name = "Second species"),
+                       sec.axis = dup_axis(name = "In relation to detection of..."),
                        breaks = seq(0, max(ue_df_plot$time), by = timestep),
                        limits = c(0, max(ue_df_plot$time))) +
-    ylab("First species") +
+    ylab("Detection of...") +
     theme_linedraw() +
     theme(axis.text.x.top = element_blank(),
           axis.ticks.x.top = element_blank(),
@@ -126,8 +126,8 @@ plot_interactions <- function(ue_df,
   # if there are silhouettes
   if(!all(is.na(silhouettes))){
     g <- g + 
-      facet_grid(rows = vars(from),
-                 cols = vars(to),
+      facet_grid(rows = vars(to),
+                 cols = vars(from),
                  labeller = as_labeller(silhouettes),
                  switch = "y") +
       theme(strip.text.x = element_markdown(color = "black", 
@@ -139,7 +139,7 @@ plot_interactions <- function(ue_df,
     
     if (separate_self) {
       g2 <- g2 + 
-        facet_grid(cols = vars(to),
+        facet_grid(cols = vars(from),
                    labeller = as_labeller(silhouettes_self)) +
         theme(strip.text.x = element_markdown(color = "black", 
                                               size = textsize),
@@ -150,10 +150,10 @@ plot_interactions <- function(ue_df,
               strip.background = element_rect(fill="white"))
     }
     
-  }else{
+  } else{
     g <- g +
-      facet_grid(rows = vars(from),
-                 cols = vars(to),
+      facet_grid(rows = vars(to),
+                 cols = vars(from),
                  switch = "y") +
       theme(strip.text = element_text(size = textsize,
                                       color = "black"),
@@ -161,7 +161,7 @@ plot_interactions <- function(ue_df,
     
     if (separate_self) {
       g2 <- g2 +
-        facet_grid(cols = vars(to)) +
+        facet_grid(cols = vars(from)) +
         theme(strip.text = element_text(size = textsize,
                                         color = "black"),
               strip.background = element_rect(fill="white"),
@@ -170,7 +170,7 @@ plot_interactions <- function(ue_df,
   }
   
   # Add title in case single plot
-  if (separate_self) {
+  if (!separate_self) {
     if(!is.na(title)){
       g <- g + ggtitle(title) +
         theme(strip.placement = "outside")
@@ -191,7 +191,8 @@ plot_interactions <- function(ue_df,
             axis.title.x.bottom = element_blank())
     
     if (!is.na(title)) { 
-      glist <- glist + graphics::title(title)
+      glist <- glist + patchwork::plot_annotation(title = title) & 
+        theme(plot.title = element_text(size = textsize*1.5))
     }
     glist
   } else {
