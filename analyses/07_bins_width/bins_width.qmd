@@ -15,7 +15,7 @@ library(camtrapHawkes)
 packages <- c("here", "lubridate", "UnitEvents",
               "ggplot2", "patchwork", "dplyr")
 base::lapply(packages, require)
-
+here::i_am("analyses/07_bins_width/bins_width.qmd")
 ```
 
 ## Parameters
@@ -99,7 +99,6 @@ for (i in 1:length(dhours_vec)) {
 
 Now let's plot the graphs:
 
-
 ```{r interactions}
 # --- Initialize glist
 glist_inter <- vector("list", length(modlist))
@@ -115,6 +114,7 @@ for (i in 1:length(modlist)) {
                          textsize = 12,
                          timestep = floor((max(mod$time)*24)/3),
                          ystep = 0.2,
+                         h = 0,
                          separate_self = TRUE,
                          title = paste("Bin width:",
                                    bin,
@@ -124,7 +124,6 @@ for (i in 1:length(modlist)) {
   glist_inter[[i]] <- wrap_elements(g)
 }
 ```
-
 
 ```{r background_rates}
 # --- Initialize glist_bg
@@ -144,20 +143,18 @@ for (i in 1:length(modlist)) {
                                    ifelse(bin == "1",
                                           "hour", "hours")))
   
-  glist_bg[[i]] <- g
+  glist_bg[[i]] <- wrap_elements(g)
 
 }
 ```
 
 ## Comparison of different bins widths
 
-
 Here are the parameters inferred with 6 hours bins in `05_example_real_data`:
 
 ![Original interactions](../../figures/05_example_real_data/interactions.jpeg)
 
 ![Original background rates](../../figures/05_example_real_data/background_rates.jpeg)
-
 
 Below are the values for bins much smaller than the original bin width (6 hours):
 
@@ -166,12 +163,16 @@ smaller_names <- as.character(smaller)
 wrap_plots(c(glist_inter[smaller_names],
              glist_bg[smaller_names]), 
            nrow = 2, byrow = TRUE,
-           heights = c(8, 5))
+           heights = c(8, 3))
+
+# Export plot
+ggsave(file.path(figures_path, "smaller_bins.jpeg"),
+       bg = "white",
+       width = 22, height = 13,
+       dpi = 300)
 ```
 
-The inferred interactions for the 3 tested bin widths above are pretty similar. Moreover, all nonzero interactions are the same as in the  6-hours bins version. However, some interactions present in the 6-hours bins version are missed, possibly due to lower power.
-The inferred background rates have similar numerical values than those inferred with 6 hours bins, and they are pretty stable except for impala. However, their relative strength is the same.
-
+The inferred interactions for the 3 tested bin widths above are pretty similar. Moreover, all nonzero interactions are the same as in the 6-hours bins version. However, some interactions present in the 6-hours bins version are missed, possibly due to lower power. The inferred background rates have similar numerical values than those inferred with 6 hours bins, and they are pretty stable except for impala. However, their relative strength is the same.
 
 Below are the values for bins bigger than 6 hours:
 
@@ -180,11 +181,16 @@ bigger_names <- as.character(bigger)
 wrap_plots(c(glist_inter[bigger_names],
              glist_bg[bigger_names]), 
            nrow = 2, byrow = TRUE,
-           heights = c(8, 5))
+           heights = c(8, 3))
+
+# Export plot
+ggsave(file.path(figures_path, "bigger_bins.jpeg"),
+       bg = "white",
+       width = 22, height = 13,
+       dpi = 300)
 ```
 
-Again, the inferred interactions above are pretty similar for the different bin widths. And all nonzero interactions are the same as in the 6-hours bins version, except an attraction of impala by lion that appears after 36 hours with 7 and 11 hours bins. No interactions that appeared in the 6 hours inference are missed. 
-The inferred background rates are similar to those inferred with 6 hours bins.
+Again, the inferred interactions above are pretty similar for the different bin widths. And all nonzero interactions are the same as in the 6-hours bins version, except an attraction of impala by lion that appears after 36 hours with 7 and 11 hours bins. No interactions that appeared in the 6 hours inference are missed. The inferred background rates are similar to those inferred with 6 hours bins.
 
 Below are the values for bins close to 6 hours:
 
@@ -193,13 +199,12 @@ close_names <- as.character(close)
 wrap_plots(c(glist_inter[close_names],
              glist_bg[close_names]), 
            nrow = 2, byrow = TRUE,
-           heights = c(8, 5))
+           heights = c(8, 3))
 # Export plot
 ggsave(file.path(figures_path, "close_bins.jpeg"),
        bg = "white",
-       width = 24, height = 12,
-       dpi = 600)
+       width = 22, height = 13,
+       dpi = 300)
 ```
 
-Again the interactions are similar to those of the 6 hours bins. We can notice that an attraction appears between lion and impala between 30 and 36 hours of delay with impala attracted by lion, which is not the case in the 6 hours bins case. This might be due to the fact that this attraction is at the edge of the 36 hours of maximal delay imposed in the original setting, whereas here the time bins extend further due to the function support extending after 36 hours (this was necessary because of the discretized bins).
-The inferred background rates are similar to those inferred with 6 hours bins.
+Again the interactions are similar to those of the 6 hours bins. We can notice that an attraction appears between lion and impala between 30 and 36 hours of delay with impala attracted by lion, which is not the case in the 6 hours bins case. This might be due to the fact that this attraction is at the edge of the 36 hours of maximal delay imposed in the original setting, whereas here the time bins extend further due to the function support extending after 36 hours (this was necessary because of the discretized bins). The inferred background rates are similar to those inferred with 6 hours bins.
