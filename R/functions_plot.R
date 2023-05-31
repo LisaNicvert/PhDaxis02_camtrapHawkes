@@ -31,6 +31,7 @@
 #' @param textsize text minimal size (for x and y axes)
 #' @param linesize linewidth
 #' @param separate_self whether to separate auto-interactions and plot them above
+#' @param h Horizontal spacing between plots (if separate self)
 #'
 #' @return ggplot object, a plot with the pairwise interaction functions between species.
 #' @export
@@ -43,6 +44,7 @@ plot_interactions <- function(ue_df,
                               ystep = NA,
                               textsize = 10,
                               linesize = .5, 
+                              h = 0.3,
                               separate_self = FALSE
 ){
   
@@ -181,7 +183,7 @@ plot_interactions <- function(ue_df,
   
   if (separate_self) {
     glist <- g2 + patchwork::plot_spacer() + g + 
-      patchwork::plot_layout(heights = c(1, 0.3, nspecies),
+      patchwork::plot_layout(heights = c(1, h, nspecies),
                              ncol = 1)
     
     # Format axes
@@ -770,7 +772,7 @@ plot_perf <- function(d,
 plot_bias <- function(bias_df, fill = "valprop", textsize = 12) {
   
   ggplot(bias_df) +
-    geom_tile(aes(y = from, x = to, fill = !!rlang::sym(fill))) +
+    geom_tile(aes(y = to, x = from, fill = !!rlang::sym(fill))) +
     viridis::scale_fill_viridis(limits = c(0, 1), name = "Proportion") +
     coord_equal(expand = FALSE) +
     theme_linedraw() +
@@ -779,5 +781,6 @@ plot_bias <- function(bias_df, fill = "valprop", textsize = 12) {
           legend.title = element_text(size = textsize*1.05),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill="white"))
+          panel.background = element_rect(fill="white")) +
+    scale_x_discrete(position = "top") 
 }
