@@ -1,11 +1,11 @@
 Package: camtrapHawkes
-Title: analyze camera trap data with Hawkes processes
+Title: Analyze camera trap data with Hawkes processes
 Version: 0.0.0.9000
 Authors@R: 
     person("Lisa", "Nicvert", , "lisa.nicvert@univ-lyon1.fr", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0006-5763-0865"))
-Description: This project contains the code to reproduce the analyses from the article "Using the Hawkes model to study spatio-temporal interactions between multiple species from camera trap data". The aim is to use the multivariate Hawkes point process to analyze camera trap data by performing simulations and analyzing real camera trap data from the Snapshot Safari project.
-License: GPL-3
+Description: Helper functions to infer a Hawkes process from camera trap data. This code relies heavily on the UnitEvents package (https://sourcesup.renater.fr/frs/?group_id=3267) for Hawkes process simulation and inference but implements helper functions for formatting and plotting.
+License: GPL (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = FALSE)
 RoxygenNote: 7.2.3
