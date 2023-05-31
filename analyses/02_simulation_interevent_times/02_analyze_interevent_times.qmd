@@ -91,6 +91,13 @@ files_sim <- file.path(data_folder, files_sim)
 sim_df <- do.call('rbind', lapply(files_sim, read.csv))
 ```
 
+
+```{r}
+# Remove some repetitions
+val_df <- val_df %>% filter(rep <= 25)
+sim_df <- sim_df %>% filter(rep <= 25)
+```
+
 ```{r}
 # --- Extract data from raw files
 # Get unique species pairs
@@ -319,9 +326,9 @@ inference_bias_pval <- inference_bias %>%
               valprop = valsum/n(),
               .groups = "drop")
 
-plot_bias(inference_bias_pval, textsize = 16) +
-  xlab("To") +
-  ylab("From")
+plot_bias(inference_bias_pval, textsize = 14) +
+  xlab("In relation to detection of...") +
+  ylab("Detection of...")
 ```
 
 ### Adjusted p-value
@@ -333,9 +340,10 @@ inference_bias_padj <- inference_bias %>%
               valprop = valsum/n(),
               .groups = "drop")
 
-plot_bias(inference_bias_padj, textsize = 16) +
-  xlab("To") +
-  ylab("From")
+plot_bias(inference_bias_padj, textsize = 14) +
+  xlab("In relation to detection of...") +
+  ylab("Detection of...")
+
 # save figure
 ggsave(file.path(figures_path, "bias_padjusted.jpeg"),
        width = 12, height = 10, dpi = 600, units = "cm", bg = "white")
@@ -419,9 +427,10 @@ ggplot() +
   scale_alpha_continuous(range = c(alpha_transparency, 1)) + 
   guides(alpha = "none") +
   # Facetting
-  facet_grid(from ~ to, switch = "y", scales = "free_y") +
+  facet_grid(to ~ from, switch = "y", scales = "free_y") +
   # Labels and title
-  ylab("Count") + xlab("Median inter-event times") +
+  ylab("Count") + 
+  xlab("Median inter-event times") +
   # Theme
   theme_linedraw() +
   theme(legend.position = "bottom",
@@ -471,7 +480,7 @@ ggplot() +
   scale_alpha_continuous(range = c(alpha_transparency, 1)) + 
   guides(alpha = "none") +
   # Facetting
-  facet_grid(from ~ to, switch = "y", scales = "free_y") +
+  facet_grid(to ~ from, switch = "y", scales = "free_y") +
   # Labels and title
   ylab("Count") + xlab("Median inter-event times") +
   # Theme
