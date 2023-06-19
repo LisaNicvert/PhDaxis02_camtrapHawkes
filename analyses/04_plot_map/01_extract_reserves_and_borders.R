@@ -13,7 +13,9 @@
 library(camtrapHawkes)
 
 packages <- c("here", "dplyr", 
-              "sf", "sp", "rgdal", "ggsn", "osmdata")
+              "sf", 
+              "sp", "rgdal", 
+              "ggsn", "osmdata")
 base::lapply(packages, require)
 
 

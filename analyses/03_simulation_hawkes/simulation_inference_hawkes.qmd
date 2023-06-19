@@ -409,8 +409,8 @@ inference_bias_plot <- inference_bias %>%
             .groups = "drop")
 
 plot_bias(inference_bias_plot, textsize = 14) +
-  xlab("In relation to detection of...") +
-  ylab("Detection of...")
+  xlab("Is impacted by...") +
+  ylab("Occurrence rate of...")
 
 ggsave(file.path(figures_path, "bias_gamma.jpeg"),
        width = 12, height = 10, dpi = 600, units = "cm", bg = "white")

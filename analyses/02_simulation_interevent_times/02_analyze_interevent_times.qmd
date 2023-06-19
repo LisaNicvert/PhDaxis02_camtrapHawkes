@@ -26,7 +26,7 @@ base::lapply(packages, require)
 
 ```{r}
 # --- Data
-data_folder <- here("outputs/02_simulation_interevent_times/simu_interevents_cluster")
+data_folder <- here("outputs/02_simulation_interevent_times/simu_local")
 pval_file <-  here("outputs/02_simulation_interevent_times/pval_precomputed.csv")
 
 # --- P-values
@@ -89,13 +89,6 @@ val_df <- do.call('rbind', lapply(files_val, read.csv))
 # This might take a while
 files_sim <- file.path(data_folder, files_sim)
 sim_df <- do.call('rbind', lapply(files_sim, read.csv))
-```
-
-
-```{r}
-# Remove some repetitions
-val_df <- val_df %>% filter(rep <= 25)
-sim_df <- sim_df %>% filter(rep <= 25)
 ```
 
 ```{r}
@@ -283,7 +276,7 @@ perf_pval <- format_data_perf(perf_pval, level = alpha)
 plot_perf(perf_pval,  
           psize = 1.1,
           xaxis = "Tmax") +
-  xlab(paste("Trapping days per camera (× 30 cameras)")) +
+  xlab(paste("Trapping days per camera (× 25 cameras)")) +
   facet_grid(col = vars(strength),
              labeller = label_both) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -299,7 +292,7 @@ perf_padj <- format_data_perf(perf_padj, level = alpha)
 plot_perf(perf_padj,  
           psize = 1.1,
           xaxis = "Tmax") +
-  xlab(paste("Trapping days per camera (× 30 cameras)")) +
+  xlab(paste("Trapping days per camera (× 25 cameras)")) +
   facet_grid(col = vars(strength),
              labeller = label_both) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -327,8 +320,8 @@ inference_bias_pval <- inference_bias %>%
               .groups = "drop")
 
 plot_bias(inference_bias_pval, textsize = 14) +
-  xlab("In relation to detection of...") +
-  ylab("Detection of...")
+  xlab("Is impacted by...") +
+  ylab("Occurrence rate of...")
 ```
 
 ### Adjusted p-value
@@ -341,8 +334,8 @@ inference_bias_padj <- inference_bias %>%
               .groups = "drop")
 
 plot_bias(inference_bias_padj, textsize = 14) +
-  xlab("In relation to detection of...") +
-  ylab("Detection of...")
+  xlab("Is impacted by...") +
+  ylab("Occurrence rate of...")
 
 # save figure
 ggsave(file.path(figures_path, "bias_padjusted.jpeg"),

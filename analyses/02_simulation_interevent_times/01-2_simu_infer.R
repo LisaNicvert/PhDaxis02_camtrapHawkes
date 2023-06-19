@@ -33,7 +33,7 @@ duration_days <- 2
 # --- Simu params
 # Tmax_list <- c(20, 100, 300, 400, 500) # Tmax (in args)
 # nrep_each <- 30 # Number of datasets generated (in args)
-n_cameras <- 30
+n_cameras <- 25
 perm_count <- 999 # Number of permutation
 
 # --- Results writing
