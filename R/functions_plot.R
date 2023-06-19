@@ -77,10 +77,10 @@ plot_interactions <- function(ue_df,
     geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
-                       sec.axis = dup_axis(name = "In relation to detection of..."),
+                       sec.axis = dup_axis(name = "Is impacted by..."),
                        breaks = seq(0, max(ue_df_plot$time), by = timestep),
                        limits = c(0, max(ue_df_plot$time))) +
-    ylab("Detection of...") +
+    ylab("Occurrence rate of...") +
     theme_linedraw() +
     theme(axis.text.x.top = element_blank(),
           axis.ticks.x.top = element_blank(),
@@ -88,8 +88,8 @@ plot_interactions <- function(ue_df,
           axis.text.y = element_text(size = textsize),
           axis.title.x.bottom = element_text(size = textsize*1.16, 
                                              face = "italic"),
-          axis.title = element_text(size = textsize*1.5),
-          title = element_text(size = textsize*1.5),
+          axis.title = element_text(size = textsize*1.2),
+          title = element_text(size = textsize*1.2),
           panel.spacing = grid::unit(0.5, "lines"))
   
   if (separate_self) {
@@ -109,8 +109,8 @@ plot_interactions <- function(ue_df,
             axis.title.y = element_blank(),
             axis.text.x = element_text(size = textsize),
             axis.text.y = element_text(size = textsize),
-            axis.title = element_text(size = textsize*1.5),
-            title = element_text(size = textsize*1.5),
+            axis.title = element_text(size = textsize*1.2),
+            title = element_text(size = textsize*1.2),
             panel.spacing = grid::unit(0.5, "lines")) +
       ggtitle("Auto-interactions")
   }
@@ -148,7 +148,7 @@ plot_interactions <- function(ue_df,
               strip.text.y.left = element_markdown(color = "black",
                                                    size = textsize,
                                                    angle = 0),
-              strip.placement = "outside",
+              # strip.placement = "outside",
               strip.background = element_rect(fill="white"))
     }
     
@@ -166,16 +166,15 @@ plot_interactions <- function(ue_df,
         facet_grid(cols = vars(from)) +
         theme(strip.text = element_text(size = textsize,
                                         color = "black"),
-              strip.background = element_rect(fill="white"),
-              strip.placement = "outside")
+              strip.background = element_rect(fill="white"))
+              # strip.placement = "outside")
     }
   }
   
   # Add title in case single plot
   if (!separate_self) {
     if(!is.na(title)){
-      g <- g + ggtitle(title) +
-        theme(strip.placement = "outside")
+      g <- g + ggtitle(title)
     }
   }
   
@@ -194,7 +193,7 @@ plot_interactions <- function(ue_df,
     
     if (!is.na(title)) { 
       glist <- glist + patchwork::plot_annotation(title = title) & 
-        theme(plot.title = element_text(size = textsize*1.5))
+        theme(plot.title = element_text(size = textsize*1.2))
     }
     glist
   } else {
@@ -245,7 +244,8 @@ plot_background_rate <- function(ue_df,
   
   if(write_label) {
     g <- g + 
-      geom_text(aes(label = round(spont, 3)), nudge_x = nudge_label)
+      geom_text(aes(label = round(spont, 3)), nudge_x = nudge_label,
+                size = textsize/ggplot2:::.pt)
   }
   
   if(!is.na(title)) {
