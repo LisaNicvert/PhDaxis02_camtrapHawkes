@@ -13,22 +13,23 @@
 # Load functions from main folder (for the require function)
 library(camtrapHawkes)
 
-packages <- c("here", "dplyr", "sf", "sp", "ggsn")
+packages <- c("here", "dplyr", "sf", 
+              "ggplot2", "ggspatial")
 base::lapply(packages, require)
 
 # Read data ------------------------------------------------------------
 
 # --- Countries borders
-southern_africa <- st_read(here("outputs/04_plot_map/southern_africa/southern_africa.shp"))
+southern_africa <- st_read(here("outputs/04_plot_map/southern_africa/southern_africa.gpkg"))
 
 # --- Parks
-parks <- read_sf(here("outputs/04_plot_map/reserves/reserves.shp"))
+parks <- read_sf(here("outputs/04_plot_map/reserves/reserves.gpkg"))
 
 # --- Figures
 figures_path <- here("figures/04_plot_map")
 
 # Select useful parks -------------------------------------------
-# Remove Kapama
+# Remove Kapama (not in the cameras subset used)
 parks <- parks %>% filter(name != "Kapama Game Reserve")
 
 # Select relevant columns
@@ -49,17 +50,20 @@ parks <- parks %>%
 
 ## Merge APN reserves ------
 parks_APN <- parks %>% 
-  filter(code == "APN")
-parks_APN <- st_union(parks_APN)
+  filter(code == "APN") %>%
+  st_union()
 
 # Convert to dataframe and add relevant columns
 parks_APN <- st_sf(data.frame(name = "APN",
-                              code = "APN",
-                              geom = parks_APN))
+                              code = "APN"),
+                   parks_APN) %>%
+  rename("geom" = "parks_APN")
 
 ## Replace multiple polygons with APN ------
-parks <- parks %>%
-  filter(code != "APN") %>%
+parks_other <- parks %>%
+  filter(code != "APN")
+
+parks <- parks_other %>%
   bind_rows(parks_APN)
 
 # Arrange data
@@ -75,11 +79,12 @@ label <- regmatches(x =  sites_label$name,
 sites_label$label <- label
 
 ## Projection ------
-CRS("+init=epsg:2046") # Inspiration of the string used for CRS
+st_crs(2046)$proj4string # Inspiration of the string used for CRS
 projstring <- "+proj=tmerc +axis=enu +lat_0=0 +lon_0=15 +k=1 +x_0=0 +y_0=0
 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
-init_crs <- CRS("+init=epsg:4326")
+# init_crs <- CRS("+init=epsg:4326")
+init_crs <- st_crs(4326)
 
 southern_africa <- southern_africa %>% 
   st_set_crs(init_crs) %>% 
@@ -126,9 +131,9 @@ SA_inset <- ggplotGrob(
           lwd = .2, 
           fill = fill,
           col = border) +
-  blank() +
+  theme_void() +
   theme(axis.title = element_blank(),
-        axis.text = element_text(size=15),
+        axis.text = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(fill = NA, colour = "black", 
@@ -176,22 +181,19 @@ nudge_x <- c(-1, 0.5, 0.3,
              ylim = map_dim[c("ymin", "ymax")],
              crs = projstring) +
     # Scale
-    ggsn::scalebar(location = "topright",
-                   transform = FALSE,
-                   dist_unit = "km",
-                   st.size = 6, 
-                   st.dist = .04,
-                   border.size = 0.5,
-                   x.min = map_dim["xmin"],
-                   x.max = map_dim["xmax"] - 30000,
-                   y.min = map_dim["ymin"],
-                   y.max = map_dim["ymax"],
-                   dist = 100) +
+    annotation_scale(location = "tr", 
+                     width_hint = 0.25,
+                     text_cex = 1.3,
+                     pad_x = unit(0.5, "cm"),
+                     pad_y = unit(0.5, "cm"),
+                     tick_height = 1) +
     # North arrow
-    north(location = "topleft",
-          x.min = map_dim["xmin"], x.max = map_dim["xmax"],
-          y.min = map_dim["ymin"], y.max = map_dim["ymax"],
-          symbol = 12) +
+    annotation_north_arrow(location = "tl", 
+                           height = unit(0.45, "in"),
+                           width = unit(0.3, "in"),
+                           pad_x = unit(0.5, "cm"),
+                           pad_y = unit(0.5, "cm"),
+                           style = north_arrow_orienteering(text_size = 14)) +
     # Cosmetics
     xlab("Longitude") +
     ylab("Latitude") +

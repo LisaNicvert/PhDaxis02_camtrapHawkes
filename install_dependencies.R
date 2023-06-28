@@ -67,10 +67,12 @@ base::lapply(packages, require)
 
 ## 04_plot_map -------------------------------------------------------------
 packages <- c("here", "dplyr", 
-              "sf", "sp", "rgdal", "ggsn", "osmdata")
+              "sf", 
+              "osmdata")
 base::lapply(packages, require)
 
-packages <- c("here", "dplyr", "sf", "sp", "ggsn")
+packages <- c("here", "dplyr", "sf", 
+              "ggplot2", "ggspatial")
 base::lapply(packages, require)
 
 

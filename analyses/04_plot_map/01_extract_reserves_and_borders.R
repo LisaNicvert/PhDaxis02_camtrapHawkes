@@ -14,8 +14,7 @@ library(camtrapHawkes)
 
 packages <- c("here", "dplyr", 
               "sf", 
-              "sp", "rgdal", 
-              "ggsn", "osmdata")
+              "osmdata")
 base::lapply(packages, require)
 
 
@@ -27,7 +26,7 @@ outputs_path <- here("outputs/04_plot_map")
 # Define bounding box
 SA_dim <- sf::st_bbox(c(xmin = 14, xmax = 38.5, 
                         ymin = -35, ymax = -22),  
-                      crs = CRS("+init=epsg:4326"))
+                      crs = st_crs(4326))
 
 # Get countries
 q <- opq(bbox =  SA_dim, timeout = 60*3) %>%
@@ -41,7 +40,7 @@ countries <- countries %>% select(name)
 # Get reserves -----------------------------------------------------------
 bbox_dim <- sf::st_bbox(c(xmin = 26, xmax = 32, 
                           ymin = -28, ymax = -22),  
-                        crs = CRS("+init=epsg:4326"))
+                        crs = st_crs(4326))
 
 q <- opq(bbox =  bbox_dim, timeout = 60*3) %>%
   add_osm_feature(key = 'boundary', value = 'protected_area')
@@ -63,9 +62,10 @@ parks <- parks_res$osm_multipolygons %>%
 
 
 # Write to files ----------------------------------------------------------
-st_write(parks, file.path(outputs_path, "reserves/reserves.shp"),
+st_write(parks, 
+         dsn = file.path(outputs_path, "reserves/reserves.gpkg"),
          append = FALSE,
          delete_layer = TRUE)
-st_write(countries, file.path(outputs_path, "southern_africa/southern_africa.shp"),
+st_write(countries, file.path(outputs_path, "southern_africa/southern_africa.gpkg"),
          append = FALSE,
          delete_layer = TRUE)
