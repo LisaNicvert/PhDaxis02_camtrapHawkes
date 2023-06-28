@@ -47,17 +47,17 @@ spont <- 0.1 # background rate
 nspecies <- 5 # number of interacting species
 
 # Simulation params -----
-perform_simu <- FALSE # perform the simulation or not?
+perform_simu <- TRUE # perform the simulation or not?
 # Since running the simulation might be quite long (around 2 hours),
 # a RDS file with the realized simulations is also provided.
 
-n_cameras <- 30 # number of cameras
+n_cameras <- 25 # number of cameras
 Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
 
-nrep_each <- 25 # repeat each simulation x times
+nrep_each <- 30 # repeat each simulation x times
 
 # Inference params -----
-perform_inference <- FALSE # perform the inference or not?
+perform_inference <- TRUE # perform the inference or not?
 # Since running the inference takes a few minutes, a RDS fils
 # with the realized simulations is also provided.
 
