@@ -127,13 +127,74 @@ The code used to perform analyses and produce figures of this project is license
 
 The underlying source code used generate content (contained in the `R/` folder and associated to the package) is licensed under the [GPL \>= 2 licence](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
 
-The raw data in `data/camtrap_data/data.csv` is licenced under...
+The raw data in `data/camtrap_data/data.csv` is licenced under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
+## Session info
+
+Here is the output of the `SessionInfo` on the computer used to run the analyses:
+
+```         
+> sessionInfo()
+R version 4.3.0 (2023-04-21)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 20.04.6 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
+
+locale:
+ [1] LC_CTYPE=fr_FR.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=fr_FR.UTF-8        LC_COLLATE=fr_FR.UTF-8    
+ [5] LC_MONETARY=fr_FR.UTF-8    LC_MESSAGES=fr_FR.UTF-8   
+ [7] LC_PAPER=fr_FR.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=fr_FR.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Europe/Paris
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] tidygraph_1.2.3     UnitEvents_0.0.8    igraph_1.5.0       
+ [4] quarto_1.2          NHPoisson_3.3       lubridate_1.9.2    
+ [7] ggspatial_1.1.8     osmdata_0.2.3       sf_1.0-13          
+[10] tibble_3.2.1        gridExtra_2.3       tidyr_1.3.0        
+[13] dplyr_1.1.2         magrittr_2.0.3      doParallel_1.0.17  
+[16] iterators_1.0.14    foreach_1.5.2       ggplot2_3.4.2      
+[19] RColorBrewer_1.1-3  here_1.0.1          camtrapHawkes_1.0.0
+
+loaded via a namespace (and not attached):
+ [1] DBI_1.1.3          remotes_2.4.2      rlang_1.1.1        e1071_1.7-13      
+ [5] compiler_4.3.0     callr_3.7.3        vctrs_0.6.3        stringr_1.5.0     
+ [9] profvis_0.3.8      pkgconfig_2.0.3    crayon_1.5.2       fastmap_1.1.1     
+[13] ellipsis_0.3.2     ggraph_2.1.0       utf8_1.2.3         promises_1.2.0.1  
+[17] rmarkdown_2.22     sessioninfo_1.2.2  ps_1.7.5           purrr_1.0.1       
+[21] xfun_0.39          cachem_1.0.8       jsonlite_1.8.5     later_1.3.1       
+[25] tweenr_2.0.2       prettyunits_1.1.1  R6_2.5.1           stringi_1.7.12    
+[29] car_3.1-2          pkgload_1.3.2      Rcpp_1.0.10        knitr_1.43        
+[33] usethis_2.2.1      httpuv_1.6.11      timechange_0.2.0   tidyselect_1.2.0  
+[37] rstudioapi_0.14    abind_1.4-5        yaml_2.3.7         viridis_0.6.3     
+[41] ggtext_0.1.2       codetools_0.2-19   miniUI_0.1.1.1     processx_3.8.1    
+[45] pkgbuild_1.4.2     shiny_1.7.4        withr_2.5.0        evaluate_0.21     
+[49] units_0.8-2        proxy_0.4-27       urlchecker_1.0.1   polyclip_1.10-4   
+[53] xml2_1.3.4         pillar_1.9.0       carData_3.0-5      KernSmooth_2.23-21
+[57] generics_0.1.3     rprojroot_2.0.3    munsell_0.5.0      scales_1.2.1      
+[61] xtable_1.8-4       class_7.3-22       glue_1.6.2         tools_4.3.0       
+[65] fs_1.6.2           graphlayouts_1.0.0 grid_4.3.0         devtools_2.4.5    
+[69] colorspace_2.1-0   ggforce_0.4.1      cli_3.6.1          fansi_1.0.4       
+[73] viridisLite_0.4.2  gtable_0.3.3       digest_0.6.32      classInt_0.4-9    
+[77] ggrepel_0.9.3      htmlwidgets_1.6.2  farver_2.1.1       memoise_2.0.1     
+[81] htmltools_0.5.5    lifecycle_1.0.3    mime_0.12          gridtext_0.1.5    
+[85] MASS_7.3-60  
+```
 
 ## References
 
-Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). *UnitEvents: Unitary Events Method
-with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes* (0.0.8).
-<https://sourcesup.renater.fr/frs/?group_id=3267>
+Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). *UnitEvents: Unitary Events Method with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes* (0.0.8). <https://sourcesup.renater.fr/frs/?group_id=3267>
 
 Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes model to study reactive temporal interactions between multiple species from camera trap data.* [Manuscript in preparation]
 
