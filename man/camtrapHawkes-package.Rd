@@ -6,7 +6,7 @@
 \alias{camtrapHawkes-package}
 \title{camtrapHawkes: analyze camera trap data with Hawkes processes}
 \description{
-This project contains the code to reproduce the analyses from the article "Using the Hawkes model to study spatio-temporal interactions between multiple species from camera trap data". The aim is to use the multivariate Hawkes point process to analyze camera trap data by performing simulations and analyzing real camera trap data from the Snapshot Safari project.
+This project contains the code to reproduce the analyses from the article "Using the multivariate Hawkes model to study interactions between multiple species from camera trap data". The aim is to use the multivariate Hawkes point process to analyze camera trap data by performing simulations and analyzing real camera trap data from the Snapshot Safari project.
 }
 \author{
 \strong{Maintainer}: Lisa Nicvert \email{lisa.nicvert@univ-lyon1.fr} (\href{https://orcid.org/0009-0006-5763-0865}{ORCID})
