@@ -17,7 +17,7 @@ tmaxlist=(20 100 300 400 500)
 # tmaxlist=20
 
 # --- Initialize nrep (number of datasets)
-nrep=9
+nrep=30
 # nrep=1
 
 # --- Run the script locally or on a computing cluster?
@@ -43,7 +43,7 @@ if ! $run_locally ; then
 fi
 
 # ========== Launch jobs ==========
-i=25 # (seed)
+i=0 # (seed)
 # --- Iterate through strength
 for strength in ${strengthlist[@]}
 do
