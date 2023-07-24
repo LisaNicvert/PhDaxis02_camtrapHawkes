@@ -142,7 +142,7 @@ for (i in 1:length(modlist)) {
   bin <- names(modlist)[i]
   
   g <- plot_background_rate(ue_df = mod,
-                     textsize = 15,
+                     textsize = 14,
                      write_label = TRUE,
                      silhouettes = silhouettes_labs,
                      title = "Background rates") +

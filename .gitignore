@@ -5,5 +5,5 @@ outputs/02_simulation_interevent_times/sbatch
 outputs/02_simulation_interevent_times/simu_local
 figures/05_example_real_data/interactions_edited.svg
 figures/05_example_real_data/interactions_edited.svg
-figures/07_bins_width/binwidth_9.svg
-figures/07_bins_width/binwidth_3.svg
+figures/07_bins_width/binwidth_9_edited.svg
+figures/07_bins_width/binwidth_3_edited.svg

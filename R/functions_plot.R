@@ -104,6 +104,8 @@ plot_interactions <- function(ue_df,
       geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
       geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
       theme_linedraw() +
+      scale_x_continuous(breaks = seq(0, max(ue_df_plot$time), by = timestep),
+                         limits = c(0, max(ue_df_plot$time))) +
       theme(axis.text.x.top = element_blank(),
             axis.ticks.x.top = element_blank(),
             axis.title.y = element_blank(),
