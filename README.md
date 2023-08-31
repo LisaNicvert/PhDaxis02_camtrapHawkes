@@ -196,6 +196,6 @@ loaded via a namespace (and not attached):
 
 Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). *UnitEvents: Unitary Events Method with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes* (0.0.8). <https://sourcesup.renater.fr/frs/?group_id=3267>
 
-Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes model to study interactions between multiple species from camera trap data.* [Manuscript in preparation]
+Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes process to study interactions between multiple species from camera trap data.* [Manuscript in preparation]
 
 Pardo, Lain E. and Bombaci, Sara P. and Huebner, Sarah and Somers, Michael J. and Fritz, Herve and Downs, Colleen and Guthmann, Abby and Hetem, Robyn S. and Keith, Mark and le Roux, Aliza and Mgqatsa, Nokubonga and Packer, Craig and Palmer, Meredith S. and Parker, Daniel M. and Peel, Mike and Slotow, Rob and Strauss, W. Maartin and Swanepoel, Lourens and Tambling, Craig and Tsie, Nairobi and Vermeulen, Mika and Willi, Marco and Jachowski, David S. and Venter, Jan A. (2021). *Snapshot Safari: A large-scale collaborative to monitor Africa's remarkable biodiversity.* South African Journal of Science, 117(1/2). <https://doi.org/10.17159/sajs.2021/8134>
