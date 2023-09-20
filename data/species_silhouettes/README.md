@@ -1,4 +1,4 @@
-## Sources for the pictures
+## Phylopic silhouettes
 
 All images were retrieved from [PhyloPic](https://www.phylopic.org/). Here is a [permalink](https://www.phylopic.org/permalinks/54d4987c03237fb1273f8a8e34da816cd3bdb5d2425dfba4cd40237637c8b368) with the images licence information.
 
