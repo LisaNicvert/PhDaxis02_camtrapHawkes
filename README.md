@@ -1,6 +1,10 @@
-# Analyze camera trap data with the Hawkes process
+# Using the multivariate Hawkes process to study interactions between multiple species from camera trap data
 
-This repository contains the code and data (Pardo et al., 2021) to reproduce the analyses and figures from the article *Using the multivariate Hawkes model to study interactions between multiple species from camera trap data* (Nicvert et al., 2023).
+This repository contains the code and data to reproduce the analyses and figures from the following article: 
+
+> Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes process to study interactions between multiple species from camera trap data.* [Manuscript in preparation]
+
+The dataset published in this repository is a subset of the larger dataset described in Pardo et al. (2021) (see [data/camtrap_data/README.md](data/camtrap_data/README.md) for more details).
 
 To run the analyses, you can install the packages via R (Linux and Mac OS users) or via Docker (Linux, Mac OS and Windows users). The installation procedure is detailed in the [Packages installation](#packages-installation) section. 
 
