@@ -132,7 +132,7 @@ The code used to perform analyses and produce figures of this project is license
 
 The underlying source code used generate content (contained in the `R/` folder and associated to the package) is licensed under the [GPL \>= 2 licence](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
 
-The raw data in `data/camtrap_data/data.csv` is licenced under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+The raw data in `data/camtrap_data/data.csv` is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
 
 ## Session info
 
