@@ -2,7 +2,7 @@
 
 This repository contains the code and data to reproduce the analyses and figures from the following article: 
 
-> Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes process to study interactions between multiple species from camera trap data.* [Manuscript in preparation]
+> Nicvert, L., S. Donnet, M. Keith, M. Peel, M. J. Somers, L. H. Swanepoel, J. Venter, H. Fritz, and S. Dray. in press. Using the Multivariate Hawkes Process to Study Interactions between Multiple Species from Camera Trap Data. Ecology.
 
 The dataset published in this repository is a subset of the larger dataset described in Pardo et al. (2021) (see [data/camtrap_data/README.md](data/camtrap_data/README.md) for more details).
 
@@ -28,10 +28,10 @@ To run the analyses, you can install the packages via R (Linux and Mac OS users)
 
 In order to install the environment needed to run the analyses, you have two choices:
 
--   **Install the packages with R:** This option works only if you use Linux of Mac OS, as the R package `UnitEvents` is not avaliable on Windows.
--   **Use [Docker](https://www.docker.com/):** this option allows you to reproduce the analyses on Linux, Mac OS or Windows.
+-   **Install packages via R directly on your OS:** This option works only if you use Linux of Mac OS, as the R package `UnitEvents` is not avaliable on Windows.
+-   **Install packages via [Docker](https://www.docker.com/):** this option allows you to reproduce the analyses on Linux, Mac OS or Windows.
 
-### Install packages via R
+### Install packages via R directly on your OS
 
 #### Install `UnitEvents` dependencies
 
@@ -55,7 +55,7 @@ The up-to-date repository and instructions to install to install `UnitEvents` ca
 
 To install the needed R packages (including `UnitEvents`, once the dependencies above have been installed), you can run the script `install_dependencies.R`. The required packages are sorted by analysis, so you can choose which packages to install depending on your needs.
 
-### Use Docker
+### Install packages via Docker
 
 #### Build the Docker
 
@@ -89,11 +89,26 @@ Finally, run the `install_dependencies.R` script inside the Docker in order to i
 > Rscript install_dependencies.R
 ```
 
-#### Run analyses
+### Details
+
+The functions written for this article are organized in a R package (`camtrapHawkes`). This package can be installed with `devtools::install_local` and loaded with `library(camtrapHawkes)`.
+
+Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
+
+
+## Run analyses
+
+All analysis scripts are in the `analyses` folder. You can refer to [analyses/README.md](analyses/README.md) for more details about the function of each script.
+
+### Directly on your OS (Mac OS/Linux users)
+
+If you are running on Mac OS or Linux, you can run the files directly with the version of R installed on your computer.
+
+### If you use Docker (all users)
+
+If you are running on Windows, you need to run the analyses through Docker (for instance, with the interactive mode of Docker `it` as exemplified below).
 
 Note: you will need to specify the library to use each time you run the Docker using `export R_LIBS="/home/ubuntu/R_camtrapHawkes"`.
-
-To run the analyses, you can use the interactive mode of Docker.
 
 -   To run all scripts (except the simulation of inter-event times in `analyses/02_simulation_interevent_times/` that cannot be run locally):
 
@@ -119,12 +134,6 @@ docker run -it -v $HOME/:/home/ubuntu camtrap_hawkes_docker bash
 > export R_LIBS="/home/ubuntu/R_camtrapHawkes"
 > Rscript [path_to_script]
 ```
-
-### Details
-
-The functions written for this article are organized in a R package (`camtrapHawkes`). This package can be installed with `devtools::install_local` and loaded with `library(camtrapHawkes)`.
-
-Other needed packages are loaded (and if needed, installed) for each analysis script with a custom `camtrapHawkes::require` function.
 
 ## Licences
 
@@ -199,8 +208,8 @@ loaded via a namespace (and not attached):
 
 ## References
 
-Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). *UnitEvents: Unitary Events Method with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes* (0.0.8). <https://sourcesup.renater.fr/frs/?group_id=3267>
+Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). UnitEvents: Unitary Events Method with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes. <https://sourcesup.renater.fr/frs/?group_id=3267>
 
-Nicvert L., Donnet S., Keith M., Peel M., Somers M. J., Swanpoel L. H., Venter J., Fritz H. & Dray S (2023). *Using the multivariate Hawkes process to study interactions between multiple species from camera trap data.* [Manuscript in preparation]
+Nicvert, L., S. Donnet, M. Keith, M. Peel, M. J. Somers, L. H. Swanepoel, J. Venter, H. Fritz, and S. Dray. in press. Using the Multivariate Hawkes Process to Study Interactions between Multiple Species from Camera Trap Data. Ecology.
 
-Pardo, Lain E. and Bombaci, Sara P. and Huebner, Sarah and Somers, Michael J. and Fritz, Herve and Downs, Colleen and Guthmann, Abby and Hetem, Robyn S. and Keith, Mark and le Roux, Aliza and Mgqatsa, Nokubonga and Packer, Craig and Palmer, Meredith S. and Parker, Daniel M. and Peel, Mike and Slotow, Rob and Strauss, W. Maartin and Swanepoel, Lourens and Tambling, Craig and Tsie, Nairobi and Vermeulen, Mika and Willi, Marco and Jachowski, David S. and Venter, Jan A. (2021). *Snapshot Safari: A large-scale collaborative to monitor Africa's remarkable biodiversity.* South African Journal of Science, 117(1/2). <https://doi.org/10.17159/sajs.2021/8134>
+Pardo, L. E., S. P. Bombaci, S. Huebner, M. J. Somers, H. Fritz, C. Downs, A. Guthmann, R. S. Hetem, M. Keith, A. le Roux, N. Mgqatsa, C. Packer, M. S. Palmer, D. M. Parker, M. Peel, R. Slotow, W. M. Strauss, L. Swanepoel, C. Tambling, N. Tsie, M. Vermeulen, M. Willi, D. S. Jachowski, and J. A. Venter. 2021. Snapshot Safari: a large-scale collaborative to monitor Africa’s remarkable biodiversity. South African Journal of Science **117**:1–4. <https://doi.org/10.17159/sajs.2021/8134>
