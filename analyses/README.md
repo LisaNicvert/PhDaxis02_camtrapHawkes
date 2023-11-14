@@ -19,4 +19,4 @@ This subdirectory contains the code to run the analyses from the paper. For Quar
 
 ## References
 
-Murphy, A., Diefenbach, D. R., Ternent, M., Lovallo, M., & Miller, D. (2021). Threading the needle: How humans influence predator--prey spatiotemporal interactions in a multiple-predator system. Journal of Animal Ecology, 90(10), 2377--2390. <https://doi.org/10.1111/1365-2656.13548>
+Murphy, A., D. R. Diefenbach, M. Ternent, M. Lovallo, and D. Miller. 2021. Threading the needle: How humans influence predator–prey spatiotemporal interactions in a multiple-predator system. Journal of Animal Ecology **90**:2377–2390. <https://doi.org/10.1111/1365-2656.13548>
