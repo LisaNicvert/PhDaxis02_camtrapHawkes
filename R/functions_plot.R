@@ -14,10 +14,11 @@
 #' Plot UnitEvents interaction functions
 #' 
 #' @param ue_df dataframe with results of UnitEvents inference. Must have columns:
-#'   time
-#'   excitefunc
-#'   from
-#'   to
+#' 
+#' + time
+#' + excitefunc
+#' + from
+#' + to
 #' @param scale days or hours, following whether we want the time axis
 #' graduated in days or hours
 #' @param title plot title
@@ -208,10 +209,13 @@ plot_interactions <- function(ue_df,
 #' Plot the background rate for species.
 #'
 #' @param ue_df ue_df: dataframe with results of UnitEvents inference. Must have columns:
-#'   time
-#'   excitefunc
-#'   from
-#'   to
+#'
+#' + spont
+#' + to
+#' 
+#' The function will group values of "spont" per "to" and get the unique values that should
+#' be unique for each species.
+#' 
 #' @param title plot title
 #' @param textsize text minimal size (for x and y axes)
 #' @param silhouettes optional labels with animal silhouettes to replace default labels.
