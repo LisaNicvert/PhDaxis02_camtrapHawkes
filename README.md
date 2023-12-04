@@ -1,8 +1,8 @@
-# Using the multivariate Hawkes process to study interactions between multiple species from camera trap data
+# PhD axis 2: using multivariate Hawkes processes to study interactions between multiple species from camera trap data
 
-This repository contains the code and data to reproduce the analyses and figures from the following article: 
+This repository contains the code and data to reproduce the analyses and figures for my PhD axis using Hawkes processes to analyze camera trap data.
 
-> Nicvert, L., S. Donnet, M. Keith, M. Peel, M. J. Somers, L. H. Swanepoel, J. Venter, H. Fritz, and S. Dray. in press. Using the Multivariate Hawkes Process to Study Interactions between Multiple Species from Camera Trap Data. Ecology.
+It includes the code from Nicvert et al. (in press) (the standalone code for this article can also be found on [GitHub](https://github.com/LisaNicvert/camtrapHawkes) and is archived on [Figshare](https://doi.org/10.6084/m9.figshare.24552157.v3)).
 
 The dataset published in this repository is a subset of the larger dataset described in Pardo et al. (2021) (see [data/camtrap_data/README.md](data/camtrap_data/README.md) for more details).
 
@@ -24,7 +24,7 @@ To run the analyses, you can install the packages via R (Linux and Mac OS users)
 -   `UnitEvents_0.0.8.tar.gz` is the source package for `UnitEvents`.
 -   `Dockerfile` is the file to create a Docker environment.
 
-## Packages installation
+## Packages installation (ppstat to add)
 
 In order to install the environment needed to run the analyses, you have two choices:
 
