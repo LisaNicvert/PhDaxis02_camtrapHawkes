@@ -1,5 +1,5 @@
 ---
-title: "Influence of the bins"
+title: "Infer interactions with ppstat"
 author: 
   name: "Lisa Nicvert"
   orcid: 0009-0006-5763-0865
@@ -46,8 +46,8 @@ paramlist <- list(
   ord.hour = 3,
   # Species
   custom_splines = FALSE, # do we want different splines for each spp (TRUE) or not (FALSE)?
-  startknot.spp = -6/24, # first knot
-  endknot.spp = 2 + 6/24, # last knot
+  startknot.spp = -12/24, # first knot
+  endknot.spp = 2 + 12/24, # last knot
   by.spp = 6/24, # knots spacing (in days)
   trunc.spp = FALSE, # truncate? (avoid edge effects)
   mintrunc.spp = 0,
