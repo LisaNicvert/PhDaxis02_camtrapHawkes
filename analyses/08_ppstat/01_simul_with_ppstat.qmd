@@ -1,0 +1,208 @@
+---
+title: "Simulate and infer interactions with ppstat"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+embed-resources: true
+editor: source
+---
+
+
+```{r}
+#| code-fold: true
+#| message: false
+library(ppstat)
+library(here)
+library(lubridate)
+library(dplyr)
+
+library(tidygraph)
+library(igraph)
+
+library(patchwork)
+library(ggtext)
+
+library(camtrapHawkes)
+
+source(here("R/functions_ppstat.R"))
+```
+
+## Parameters
+
+```{r}
+# Network params ------
+t <- 0.5 # half life for the exponential interaction function
+strength <- log(10) # Max strength of the interaction function
+
+duration_days <- 2 # interaction function support (A in ppstat framework)
+spont <- log(0.1) # Background rate
+
+nspecies <- 5
+
+
+# Simulation params -----
+n_cameras <- 25 # number of cameras
+Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
+
+nrep_each <- 30 # repeat each simulation x times
+```
+
+## Create true models
+
+```{r}
+# Times vector
+times <- seq(0, duration_days, length.out = 20)
+
+# Create species names
+spp_names <- paste0("s", 1:nspecies)
+```
+
+### Interaction functions
+
+```{r}
+fs <- create_funcshape("exp", times = times, 
+                       strength = strength, t = t)
+  
+dat <- data.frame(t = times,
+                  f = exp(fs))
+
+ggplot(dat) + geom_line(aes(x = t, y = f)) +
+  ggtitle(paste("Strength:", exp(strength))) +
+  theme_linedraw() +
+  xlab("Time (days)") +
+  ylab(expression(paste("Intensity (", day^{-1}, ")")))
+```
+
+### Define the interaction network
+
+```{r}
+# ppstat doc:
+# The list h is a list of lists with h[[m]][[k]] a vector containing the effect of the k'th process on the m'th process.
+
+# Create empty interactions
+interac <- create_interactions_ppstat(spp_names = spp_names, 
+                                      times = times)
+
+# Fill non zero interactions
+interac[["s2"]][["s1"]] <- fs
+interac[["s3"]][["s2"]] <- fs
+interac[["s4"]][["s2"]] <- fs
+```
+
+```{r}
+# Transform data to graph
+mat <- matrix(nrow = nspecies, ncol = nspecies)
+colnames(mat) <- spp_names
+rownames(mat) <- spp_names
+
+for(j in 1:length(interac)) {
+  weight <- sapply(interac[[j]], sum)
+  
+  mat[, j] <- weight
+}
+
+g <- igraph::graph.adjacency(mat, weighted = TRUE, 
+                             mode = "directed")
+
+g <- as_tbl_graph(g) %>% 
+  activate(nodes) |> 
+  rename("names" = "name")
+
+lay <- layout_as_tree(g)
+plot_graph(g,
+           layout = lay,
+           textsize = 6, 
+           s = 12) + 
+  ggtitle("True interaction network")
+```
+
+## Perform simulations
+
+```{r}
+lbd <- hawkesRate(h = interac,
+                  Delta = times[2] - times[1],
+                  beta0 = rep(spont, nspecies),
+                  A = duration_days,
+                  phi = exp)
+```
+
+```{r}
+Ti <- Ogata(tLim = 100, n = 10000, lambda = lbd)
+```
+
+```{r}
+# Format simunated data
+Tdf <- as.data.frame(Ti)
+Tdf <- Tdf |> 
+  rename("species" = "markType",
+         "stamp" = "time") |> 
+  mutate(species = gsub(species, 
+                        pattern = "^M",replacement = "s")) |> 
+  mutate(species = factor(species, levels = spp_names)) |> 
+  arrange(species)
+```
+
+### Visualize simulated data
+
+```{r}
+Tdf |> 
+  group_by(species) |> 
+  summarize(n = n())
+```
+
+```{r}
+finter <- unlist(interac)
+
+to <- rep(spp_names, each = length(times)*nspecies)
+from <- rep(rep(spp_names, each = length(times)), 
+            nspecies)
+
+spontcol <- rep(rep(spont, nspecies), length(times)*nspecies)
+
+model_df <- data.frame(excitefunc = finter,
+                       time = rep(times, nspecies^2),
+                       spont = spontcol,
+                       from = factor(from),
+                       to = factor(to))
+```
+
+```{r}
+lambda_rate1 <- compute_rate(model = model_df, 
+                             data = Tdf, timestep = 0.01)
+```
+
+```{r}
+lambda_rate <- lambda_rate1 |> 
+  mutate(lambda_exp = exp(lambda))
+
+lambda_rate <- lambda_rate |> 
+  rename("lambda_notrans" = "lambda") |> 
+  rename("lambda" = "lambda_exp")
+```
+
+```{r, fig.width=10, fig.height=13}
+# --- Colors
+# Color palette
+cols <- RColorBrewer::brewer.pal(nspecies, "Dark2")
+
+# Name palette
+spp_names <- paste0("s", 1:nspecies)
+names(cols) <- spp_names
+
+plot_observed_rate(lambda_rate, 
+                   data = Tdf, 
+                   textsize = 10,
+                   hpoints = 2, hlambda = 3, lwd = 0.5, t1 = 0,
+                   timestep = 10,
+                   cols = cols)
+```
+
+
+## Perform inference
+
+To be continued...

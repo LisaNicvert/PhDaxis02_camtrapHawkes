@@ -116,3 +116,37 @@ getPlotData <-function (model, ...){
   }
   .local(model, ...)
 }
+
+#' Create interactions
+#' 
+#' Create a list of interactions as needed for a ppstat input filled
+#' with zeroes.
+#'
+#' @param spp_names Species names vector 
+#' @param times Times vector
+#'
+#' @return A list of lists.
+#' Each list represents one species, and within each list there are the interactions
+#' with this species so that flist[[i]][[j]] represents the effect of j -> i.
+#' 
+#' @export
+#'
+#' @examples
+#' create_interactions_ppstat(spp_names = letters[1:5], times = seq(0, 10, by = 1))
+create_interactions_ppstat <- function(spp_names, times) {
+  
+  # Create first level of list
+  flist <- vector(mode = "list", length = length(spp_names))
+  names(flist) <- spp_names
+  
+  # Create second (nested) level of list
+  flist <- lapply(flist, function(x) flist)
+  
+  # Function to fill the elements of a lsit with zeroes
+  fill_zeroes <- function(li, nzeroes) {
+    lapply(li, function(x) rep(0, nzeroes))
+  }
+  
+  res <- lapply(flist, function(x) fill_zeroes(x, length(times))) 
+  return(res)
+}

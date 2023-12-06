@@ -422,6 +422,7 @@ plot_observed_rate <- function(rates,
                                ybreaks,
                                cols,
                                ylabel = TRUE,
+                               log = FALSE,
                                xlab = "Time (days)"){
   
   if(missing(t1)){
@@ -505,13 +506,26 @@ plot_observed_rate <- function(rates,
       l <- l + theme(axis.title.y = element_blank())
     }
     
+    if (log) {
+      trans <- "log10"
+    } else {
+      trans = "identity"
+    }
+    
     if(!missing(ybreaks)){
       l <- l + 
         scale_y_continuous(breaks = ybreaks,
                            limits = c(0, max_lambda),
-                           expand = c(0.01, 0))
+                           expand = c(0.01, 0),
+                           trans = trans)
     }else{
-      l <- l + ylim(c(0, max_lambda))
+      if (log) {
+        l <- l + scale_y_log10()
+          # scale_y_continuous(limits = c(0, max_lambda), 
+          #                    trans = trans)
+      } else {
+        l <- l + ylim(c(0, max_lambda))
+      }
     }
     pt <- ggplot(obs_spp) + 
       geom_point(aes(x=time, y = 1), col = cols[sp], size = ptsize) +
