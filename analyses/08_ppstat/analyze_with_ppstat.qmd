@@ -33,29 +33,28 @@ source(here("R/functions_ppstat.R"))
 ```{r}
 set.seed(42)
 
-paramlist <- list(
-  # === 
-  # Models
-  # === 
-  ndays = 2, # support of interaction function
-  phi = "log", # shape of excitation function
-  lbd = 1, # lambda (not clear)
-  Nbasis = 100, # number of spline basis -> controls "bins width" together with knots
-  splines = "bSpline", # natural splines ("nSpline" custom function) or spline basis ("bSpline")
-  ord = 3, # order of splines (degree = ord-1)
-  ord.hour = 3,
-  # Species
-  custom_splines = FALSE, # do we want different splines for each spp (TRUE) or not (FALSE)?
-  startknot.spp = -12/24, # first knot
-  endknot.spp = 2 + 12/24, # last knot
-  by.spp = 6/24, # knots spacing (in days)
-  trunc.spp = FALSE, # truncate? (avoid edge effects)
-  mintrunc.spp = 0,
-  maxtrunc.spp = 2,
-  # Hour
-  startknot.hour = -pi/4,
-  endknot.hour = 2*pi + pi/4,
-  by.hour = (3/24)*2*pi)
+# === 
+# Models
+# === 
+ndays = 2 # support of interaction function
+phi = "log" # shape of excitation function
+lbd = 1 # lambda (not clear)
+
+Nbasis = 100 # number of spline basis -> controls "bins width" together with knots
+ord = 3 # order of splines (degree = ord-1)
+ord_hour = 3
+
+# Species
+startknot_spp = -12/24 # first knot
+endknot_spp = 2 + 12/24 # last knot
+by_spp = 6/24 # knots spacing (in days)
+
+trunc = NULL # truncate? (avoid edge effects)
+
+# Hour
+startknot_hour = -pi/4
+endknot_hour = 2*pi + pi/4
+by_hour = (3/24)*2*pi
 ```
 
 ## Read data
@@ -75,80 +74,29 @@ dat <- dat |> filter(!is.na(datetime))
 
 ## Write equation
 
+
 ```{r}
-# --- Splines truncature (for species interactions)
-if(paramlist$trunc.spp){
-  trunc.spp <- paste(paramlist$mintrunc.spp, paramlist$maxtrunc.spp, sep = "-")
-  trunc.formula <- paste0(", trunc = c(", 
-                          paramlist$mintrunc.spp,", ", paramlist$maxtrunc.spp, ")")
-} else{
-  trunc.spp <- "no"
-  trunc.formula <- ""
-}
-
-# --- Splines knots (for species interactions)
-if(paramlist$custom_splines){
-  custom.max <- 0
-  knots.formula <- paste0("knots =  c(seq(", 
-                          paramlist$startknot.spp, ", ", custom.max, ", by = 1)", ", ",
-                          "seq(", custom.max+paramlist$by.spp, ", ",
-                          paramlist$endknot.spp, ", by = ", paramlist$by.spp,"))")
-}else{
-  knots.formula <- paste0("knots = seq(", 
-                          paramlist$startknot.spp, ", ",
-                          paramlist$endknot.spp, 
-                          ", by = ", paramlist$by.spp,")")
-}
-
-# --- Spline type (bSpline or nSpline)
-if(paramlist$splines == "bSpline"){
-  spline.type <- "bSpline"
-  ord.arg <- paste0(", ord = ", paramlist$ord)
-  ord.arg.hour <- paste0(", ord = ", paramlist$ord.hour)
-  boundary.knots.spp <- ""
-  boundary.knots.hour <- ""
-}else if (paramlist$splines == "nSpline"){
-  spline.type <- "nSpline"
-  ord.arg <- ""
-  boundary.knots.spp <- paste0(", boundary = c(", 0, ", ", paramlist$ndays, ")")
-  boundary.knots.hour <- paste0(", boundary = c(", 0, ", ", 2*pi, ")")
-}
-
 # Write formulas
 
 # Species list
-spp_formula <- unique(dat$snapshotName)
+spp <- unique(dat$snapshotName)
 
-# Write species splines
-spp.spline <- paste0(spline.type, "(x = ",
-                     spp_formula, ", ",
-                     knots.formula,
-                     ord.arg,
-                     boundary.knots.spp,
-                     trunc.formula, ")")
+f_nocov <- write_formula(spp = spp, 
+                         startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                         by_spp = by_spp,
+                         ord = ord, 
+                         trunc = trunc,
+                         hourcov = FALSE)
 
-
-# Write hour splines
-hour.spline <- paste0(spline.type, "(x = hour, ",
-                      "knots = seq(", paramlist$startknot.hour, ", ", 
-                      paramlist$endknot.hour, ", by = ", 
-                      paramlist$by.hour, "), ",
-                      "sym = TRUE", 
-                      boundary.knots.hour,
-                      ord.arg.hour, ")")
-
-# Final formulas
-# Species response variable (write R vector with "c" in letters)
-spp.resp <- paste(spp_formula, collapse = ", ")
-spp.resp <- paste0("c(", spp.resp, ")")
-
-# Write formulas
-# -- Formula without hour covariate
-(f.nocov <- paste0(spp.resp, " ~ ", paste(spp.spline, collapse = " + ")))
-
-# -- Formula with hour covariates
-(f.cov <- paste0(f.nocov,
-                 " + ", hour.spline))
+f_cov <- write_formula(spp = spp, 
+                       startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                       by_spp = by_spp,
+                       ord = ord, 
+                       trunc = trunc,
+                       hourcov = TRUE,
+                       ord_hour = ord_hour,
+                       startknot_hour = startknot_hour, endknot_hour = endknot_hour, 
+                       by_hour = by_hour)
 ```
 
 ## Prepare inference
@@ -162,62 +110,62 @@ unitdata <- dat |>
 
 # Select useful columns and rename to accomodate ppstat
 # framework
-dat.ppstat <- dat |> 
+dat_ppstat <- dat |> 
       dplyr::select(-c(row_ID, locationID)) |> 
   rename("time" = "stamp") |> 
   rename("id" = "cameraID")
 
-dat.ppstat$snapshotName <- factor(dat.ppstat$snapshotName)
+dat_ppstat$snapshotName <- factor(dat_ppstat$snapshotName)
 
 # Create time of day (= hour) variable
-dat.ppstat <- dat.ppstat |> 
+dat_ppstat <- dat_ppstat |> 
   mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24) %>% 
   select(-datetime) |> 
   data.frame()
 
-dat.ppstat$id <- factor(dat.ppstat$id)
+dat_ppstat$id <- factor(dat_ppstat$id)
 
 # Create continuous process for hour covariate
-hour <- dat.ppstat[, c("id", "hour", "time")]  
-p.hour <- continuousProcess(hour, unitData = unitdata)
+hour <- dat_ppstat[, c("id", "hour", "time")]  
+p_hour <- continuousProcess(hour, unitData = unitdata)
 
 # Create marked point process with species occurrences
-dat.ppstat <- dat.ppstat[, c("id", "snapshotName", "time")]
+dat_ppstat <- dat_ppstat[, c("id", "snapshotName", "time")]
 
-p <- markedPointProcess(pointData = dat.ppstat,
-                        continuousData = p.hour,
+p <- markedPointProcess(pointData = dat_ppstat,
+                        continuousData = p_hour,
                         markVar = "snapshotName")
 ```
 
 ## Inference
 
 ```{r}
-if(paramlist$phi == "log"){
+if(phi == "log"){
   selfStart <- TRUE
-}else if(paramlist$phi == "identity"){
+}else if(phi == "identity"){
   selfStart <- FALSE
 }
 ```
 
 
 ```{r}
-m.cov <- pointProcessModel(as.formula(f.cov),
+m_cov <- pointProcessModel(as.formula(f_cov),
                            data = p,
-                           family = ppstat::Hawkes(paramlist$phi),
-                           N = paramlist$Nbasis,
-                           lambda = paramlist$lbd,
-                           support = paramlist$ndays,
+                           family = ppstat::Hawkes(phi),
+                           N = Nbasis,
+                           lambda = lbd,
+                           support = ndays,
                            selfStart = selfStart)
 ```
 
 
 ```{r}
-m.nocov <- pointProcessModel(as.formula(f.nocov),
+m_nocov <- pointProcessModel(as.formula(f_nocov),
                              data = p,
-                             family = ppstat::Hawkes(paramlist$phi),
-                             N = paramlist$Nbasis,
-                             lambda = paramlist$lbd,
-                             support = paramlist$ndays,
+                             family = ppstat::Hawkes(phi),
+                             N = Nbasis,
+                             lambda = lbd,
+                             support = ndays,
                              selfStart = selfStart)
 ```
 
@@ -255,65 +203,47 @@ silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path,
 ```
 
 ```{r}
-mod.df <- getPlotData(m.nocov, alpha = 0.05, trans = trans)
+mod_df <- getPlotData(m_nocov, alpha = 0.05, trans = trans)
   
 # Change variables names
-mod.df <- mod.df |> 
+mod_df <- mod_df |> 
   mutate(to = as.character(response)) |> 
   mutate(from = as.character(variable))
 ```
 
 ```{r, fig.width=8, fig.height=6}
-mod.df2 <- mod.df |> 
+mod_df2 <- mod_df |> 
   rename("time" = "x",
          "excitefunc" = "value")
 
-plot_interactions(mod.df2, 
+plot_interactions(mod_df2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
                   textsize = 12,
                   timestep = 12) +
   geom_hline(aes(yintercept = yintercept)) +
   geom_ribbon(aes(x = time, 
-                  ymin = cf.lower, ymax=cf.upper), 
+                  ymin = cf.lower, ymax = cf.upper), 
               fill = "cornflowerblue", alpha = 0.5)
-```
-
-```{r, fig.width=8, fig.height=8}
-# ggplot(mod.df) + 
-#   geom_ribbon(aes(x=x, ymin = cf.lower, ymax=cf.upper), 
-#               fill = "cornflowerblue", alpha=0.5) +
-#   geom_line(aes(x=x, y=value)) +
-#   geom_hline(yintercept = yintercept, linetype = "dashed") +
-#   facet_grid(rows = vars(to),
-#              cols = vars(from),
-#              switch = "y") + 
-#   theme_linedraw() +
-#   ylab("Occurrence rate of...") +
-#   scale_x_continuous(paste0("Time (days)"),
-#                      sec.axis = dup_axis(name = "Is impacted by..."), 
-#                      limits = c(0,paramlist$ndays)) +
-#   theme(axis.ticks.x.top = element_blank(),
-#         axis.text.x.top = element_blank())
 ```
 
 ```{r get_ppstat_coeffs_nocov, echo = FALSE}
 # Get species count
-nspp <- length(m.nocov@models)
+nspp <- length(m_nocov@models)
 
-coef.nocov <- data.frame()
+coef_nocov <- data.frame()
 for(term in 1:nspp){
-  coeffs <- get_ppstat_coeffs(model = m.nocov, 
+  coeffs <- get_ppstat_coeffs(model = m_nocov, 
                               term = term, 
                               alpha = alpha)
   
-  coef.nocov <- bind_rows(coef.nocov, coeffs)
+  coef_nocov <- bind_rows(coef_nocov, coeffs)
 }
 
 # If trans is not null, transform all coeffs
 if(!is.null(trans)){
-  coef.nocov[, c("coef", "lower", "upper")] <- do.call(trans, 
-                                                        list(coef.nocov[,
+  coef_nocov[, c("coef", "lower", "upper")] <- do.call(trans, 
+                                                        list(coef_nocov[,
                                                          c("coef", "lower", "upper")]))
 }
 ```
@@ -321,8 +251,8 @@ if(!is.null(trans)){
 ```{r}
 pattern = "(Intercept)"
 # Get all coefficients modelling spontaneous rate rhythm
-coef_spont <- coef.nocov[grep(pattern = pattern, 
-                              x = coef.nocov$coef_id),]
+coef_spont <- coef_nocov[grep(pattern = pattern, 
+                              x = coef_nocov$coef_id),]
 ```
 
 ```{r}
@@ -340,93 +270,84 @@ plot_background_rate(coef_spont2,
 ### Model with covariates
 
 ```{r}
-mod.df.cov <- getPlotData(m.cov, alpha = 0.05, trans = trans)
+mod_df_cov <- getPlotData(m_cov, alpha = 0.05, trans = trans)
   
 # Change variables names
-mod.df.cov <- mod.df.cov |> 
+mod_df_cov <- mod_df_cov |> 
   mutate(to = as.character(response)) |> 
   mutate(from = as.character(variable))
 ```
 
 ```{r, fig.height=6, fig.width=8}
-mod.df.cov2 <- mod.df.cov |> 
+mod_df_cov2 <- mod_df_cov |> 
   rename("time" = "x",
          "excitefunc" = "value")
 
-plot_interactions(mod.df.cov2, 
+plot_interactions(mod_df_cov2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
                   textsize = 12,
                   timestep = 12) +
   geom_hline(aes(yintercept = yintercept), col = "red") +
   geom_ribbon(aes(x = time, 
-                  ymin = cf.lower, ymax=cf.upper), 
-              fill = "cornflowerblue", alpha=0.5)
+                  ymin = cf.lower, ymax = cf.upper), 
+              fill = "cornflowerblue", alpha = 0.5)
 ```
 
-Compute the spline transformation of the circular time.
+Compute the spline transformation of the circular time_
 
 ```{r hour_model, echo = FALSE}
 # Construct a time vector for which to predict values
-step.th <- 0.02
-phour <- seq(0, 2*pi, by = step.th)
+step_th <- 0.02
+phour <- seq(0, 2*pi, by = step_th)
 
 # We can convert this to the hours of the days from radians
 hour <- phour/(2*pi)*24
 
 # Construct spline basis functions matrix evaluated along time vector
-if(paramlist$splines == "bSpline"){
-  bhr <- bSpline(x = phour,
-               knots = seq(paramlist$startknot.hour, 
-                           paramlist$endknot.hour, 
-                           by = paramlist$by.hour),
-               ord = paramlist$ord.hour,
-               sym = TRUE)
-}else if(paramlist$splines == "nSpline"){
-  bhr <- nSpline(x = phour,
-               boundary = c(0, 2*pi))
-}
+bhr <- bSpline(x = phour,
+             knots = seq(startknot_hour, 
+                         endknot_hour, 
+                         by = by_hour),
+             ord = ord_hour,
+             sym = TRUE)
 
 # Normalising splines basis
-cs <- sqrt(apply(bhr^2, 2, sum)*paramlist$by.hour)
+cs <- sqrt(apply(bhr^2, 2, sum)*by_hour)
 bhr <- sweep(bhr, 2, cs, "/")
 ```
 
 
 ```{r get_ppstat_coeffs_cov, echo = FALSE}
 # Get species count
-nspp <- length(m.cov@models)
+nspp <- length(m_cov@models)
 
-coef.cov <- data.frame()
+coef_cov <- data.frame()
 for(term in 1:nspp){
-  coeffs <- get_ppstat_coeffs(model = m.cov, 
+  coeffs <- get_ppstat_coeffs(model = m_cov, 
                               term = term, 
                               alpha = alpha)
   
-  coef.cov <- bind_rows(coef.cov, coeffs)
+  coef_cov <- bind_rows(coef_cov, coeffs)
 }
 
 # If trans is not null, transform all coeffs
 if(!is.null(trans)){
-  coef.cov[, c("coef", "lower", "upper")] <- do.call(trans, 
-                                                        list(coef.cov[,
+  coef_cov[, c("coef", "lower", "upper")] <- do.call(trans, 
+                                                        list(coef_cov[,
                                                          c("coef", "lower", "upper")]))
 }
 ```
 
 ```{r get_inferred_coeffs, echo = FALSE}
-# Get pattern to match
-if(paramlist$splines == "bSpline"){
-  pattern <- 'bSpline\\(x = hour'
-}else if(paramlist$splines == "nSpline"){
-  pattern <- 'nSpline\\(x = hour'
-}
+# Get pattern to match 
+pattern <- 'bSpline\\(x = hour'
 
 # Get all coefficients modelling circadian rhythm
-coef_hour <- coef.cov[grep(pattern = pattern, 
-                           x = coef.cov$coef_id),]
-coef_spont <- coef.cov[grep(pattern = "(Intercept)", 
-                            x = coef.cov$coef_id),]
+coef_hour <- coef_cov[grep(pattern = pattern, 
+                           x = coef_cov$coef_id),]
+coef_spont <- coef_cov[grep(pattern = "(Intercept)", 
+                            x = coef_cov$coef_id),]
 
 species_list <- unique(coef_hour$species)
 
@@ -529,5 +450,5 @@ for(s in species_list){
 
 
 ```{r print_plot, fig.width=12, fig.height=3}
-wrap_plots(glist, ncol = 5) & ylim(c(0, 1.2))
+wrap_plots(glist, ncol = 5) & ylim(c(0, 2))
 ```

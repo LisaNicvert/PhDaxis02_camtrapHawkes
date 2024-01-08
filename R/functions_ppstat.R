@@ -150,3 +150,91 @@ create_interactions_ppstat <- function(spp_names, times) {
   res <- lapply(flist, function(x) fill_zeroes(x, length(times))) 
   return(res)
 }
+
+#' Write formula
+#' 
+#' Write a formula expected by ppstat for the inference model
+#'
+#' @param spp Vector of unique species names
+#' @param startknot_spp First knot for species interactions. It is expressed
+#' in the same unit as the stamps on the data to fit the model to (e.g. days).
+#' @param endknot_spp Last knot for species interactions. It is expressed
+#' in the same unit as the stamps on the data to fit the model to (e.g. days).
+#' @param by_spp Step for the species interactions knots. It is expressed
+#' in the same unit as the stamps on the data to fit the model to (e.g. days).
+#' @param ord Order of the splines of species interactions.
+#' @param hourcov Should the final formula include a hour covariate (TRUE or FALSE)?
+#' @param ord_hour Order of the splines of the hour covariate for background rates.
+#' @param startknot_hour First knot for the hour covariate spline for the background rate
+#' (expressed in radians).
+#' @param endknot_hour Last knot for the hour covariate spline for the background rate
+#' (expressed in radians).
+#' @param by_hour Step of the knots for the hour covariate spline for the background rate
+#' (expressed in radians).
+#' @param trunc Whether to truncate the species interactions. If it is NULL, species interactions splines will
+#' not be truncated. Else, it must be a numerical vectors and the spline basis will be truncated to 
+#' the interval from trunc[1] to trunc[2] (see the documentation of ppstat::bSpline).
+#'
+#' @return A string that can be interpreted as a formula.
+#' 
+#' @export
+write_formula <- function(spp,
+                          startknot_spp = -0.5, endknot_spp = 2.5, by_spp = 0.25,
+                          ord = 3, 
+                          hourcov = FALSE,
+                          ord_hour = 3,
+                          startknot_hour = -pi/4, endknot_hour = 2*pi + pi/4, by_hour = (3/24)*2*pi,
+                          trunc = NULL) {
+  
+  # Species interaction splines ---
+  if(!is.null(trunc)){
+    if(length(trunc) != 2 | !is.numeric(trunc)) {
+      stop("If it is not NULL trunc must be a numeric vector of length 2.")
+    }
+    trunc_formula <- paste0("trunc = c(", 
+                            trunc[1],", ", trunc[2], ")")
+  } else{
+    trunc_formula <- "trunc = NULL"
+  }
+  
+  knots_formula <- paste0("knots = seq(", 
+                          startknot_spp, ", ",
+                          endknot_spp, 
+                          ", by = ", by_spp,")")
+  ord_arg <- paste0("ord = ", ord)
+  
+  # Final spp spline
+  spp_spline <- paste0("bSpline(x = ",
+                       spp, ", ",
+                       knots_formula, ", ",
+                       ord_arg, ", ",
+                       trunc_formula, ")")
+  
+  if (hourcov) {
+    # Hour covariate background rate splines ---
+    knots_formula_hour <- paste0("knots = seq(", 
+                                 startknot_hour, ", ", 
+                                 endknot_hour, 
+                                 ", by = ", by_hour, ")")
+    ord_arg_hour <- paste0("ord = ", ord_hour)
+    hour_spline <- paste0("bSpline(x = hour, ",
+                          knots_formula_hour, ", ",
+                          ord_arg_hour, 
+                          ", sym = TRUE)")
+  }
+  
+  # Species response variable (write R vector with "c" in letters)
+  spp_resp <- paste(spp, collapse = ", ")
+  spp_resp <- paste0("c(", spp_resp, ")")
+  
+  # Final formula ---
+  # Formula without hour covariate
+  res <- paste0(spp_resp, " ~ ", paste(spp_spline, collapse = " + "))
+  
+  if (hourcov) {
+    # Formula with hour covariates
+    res <- paste0(res, " + ", hour_spline)
+  }
+  
+  return(res)
+}
