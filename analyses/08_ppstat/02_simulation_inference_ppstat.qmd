@@ -1,0 +1,327 @@
+---
+title: "Simulate and infer interactions with ppstat"
+author: 
+  name: "Lisa Nicvert"
+  orcid: 0009-0006-5763-0865
+date: today
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+embed-resources: true
+editor: source
+---
+
+## Load libraries
+
+```{r}
+#| code-fold: true
+#| message: false
+library(ppstat)
+library(here)
+library(lubridate)
+library(dplyr)
+
+library(tidygraph)
+library(igraph)
+
+library(patchwork)
+library(ggtext)
+
+library(camtrapHawkes)
+
+source(here("R/functions_ppstat.R"))
+```
+
+## Parameters
+
+```{r}
+# Model ------
+nspecies <- 5
+
+duration_days <- 2 # interaction function support (A in ppstat framework)
+stepfunc <- 0.01
+
+spont <- log(0.2) # Background rate
+strength <- log(3) # Max strength of the interaction function
+
+t <- 0.5 # half life for the exponential interaction function
+
+# Simulation params -----
+n_cameras <- 25 # number of cameras
+Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
+
+nrep_each <- 3 # repeat each simulation x times
+
+# Inference parameters ---
+# Inference
+ndays <- 2 # support of interaction function
+phi <- "log" # shape of excitation function
+lbda <- 1 # lambda (not clear)
+
+# Model
+# Splines basis
+Nbasis <- 100 # number of spline basis -> controls "bins width" together with knots
+
+# Species
+startknot_spp <- -12/24 # first knot
+endknot_spp <- 2 + 12/24 # last knot
+by_spp <- 6/24 # knots spacing (in days)
+ord <- 3 # order of splines (degree <- ord-1)
+trunc <- NULL # truncate? (avoid edge effects)
+
+# Hour
+# startknot_hour <- -pi/4
+# endknot_hour <- 2*pi + pi/4
+# by_hour <- (3/24)*2*pi
+# ord_hour <- 3
+
+# --- Figures
+figures_path <- here("figures/08_ppstat")
+```
+
+## Create true model
+
+```{r}
+# Times vector
+times <- seq(0, duration_days, by = stepfunc)
+
+# Create species names
+spp_names <- paste0("s", 1:nspecies)
+```
+
+### Interaction function
+
+```{r}
+fs <- create_funcshape("exp", times = times, 
+                       strength = strength, t = t)
+  
+dat <- data.frame(t = times,
+                  f = exp(fs))
+
+ggplot(dat) + geom_line(aes(x = t, y = f)) +
+  ggtitle(paste("Strength:", exp(strength))) +
+  theme_linedraw() +
+  xlab("Time (days)") +
+  ylab(expression(paste("Intensity (", day^{-1}, ")")))
+```
+
+### Define the interaction network
+
+```{r}
+# ppstat doc:
+# The list h is a list of lists with h[[m]][[k]] a vector containing the effect of the k'th process on the m'th process.
+
+# Create empty interactions
+interac <- create_interactions_ppstat(spp_names = spp_names, 
+                                      times = times)
+
+# Fill non zero interactions
+interac[["s2"]][["s1"]] <- fs
+interac[["s3"]][["s2"]] <- fs
+interac[["s4"]][["s2"]] <- fs
+```
+
+```{r}
+# Transform data to graph
+mat <- matrix(nrow = nspecies, ncol = nspecies)
+colnames(mat) <- spp_names
+rownames(mat) <- spp_names
+
+for(j in 1:length(interac)) {
+  weight <- sapply(interac[[j]], sum)
+  
+  mat[, j] <- weight
+}
+
+g <- igraph::graph.adjacency(mat, weighted = TRUE, 
+                             mode = "directed")
+
+g <- as_tbl_graph(g) %>% 
+  activate(nodes) |> 
+  rename("names" = "name")
+
+lay <- layout_as_tree(g)
+plot_graph(g,
+           layout = lay,
+           textsize = 6, 
+           s = 12) + 
+  ggtitle("True interaction network")
+```
+
+## Perform simulations
+
+```{r}
+lbd <- hawkesRate(h = interac,
+                  Delta = times[2] - times[1],
+                  beta0 = rep(spont, nspecies),
+                  A = duration_days,
+                  phi = exp)
+```
+
+```{r}
+simnames <- paste0("s", 1:nrep_each)
+
+simul_list <- vector(mode = "list", 
+                     length = nrep_each)
+
+for (rep in 1:nrep_each) {
+  sim <- data.frame()
+  for(cam in 1:n_cameras) {
+    sim_cam <- Ogata(tLim = Tmax[3], n = 5000, lambda = lbd)
+    sim_cam$camera <- paste0("C", cam)
+    
+    sim <- rbind(sim, sim_cam)
+  }
+  simul_list[[rep]] <- sim
+}
+
+names(simul_list) <- simnames
+```
+
+```{r}
+# Check one repetition
+simul_list[[1]] |> 
+  group_by(markType, camera) |> 
+  summarize(n = n(), .groups = "drop") |> 
+  group_by(markType) |> 
+  summarize(mean = mean(n),
+            sd = sd(n), .groups = "drop")
+```
+
+
+## Perform inference
+
+```{r}
+# Write formula
+spp_names_formula <- paste0("M", seq(1:nspecies))
+f <- write_formula(spp = spp_names_formula, 
+                   startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                   by_spp = by_spp,
+                   ord = ord, 
+                   trunc = trunc,
+                   hourcov = FALSE,
+                   ord_hour = ord_hour,
+                   startknot_hour = startknot_hour, endknot_hour = endknot_hour, 
+                   by_hour = by_hour)
+```
+
+```{r}
+# Choose inference parameter following phi
+if(phi == "log"){
+  selfStart <- TRUE
+}else if(phi == "identity"){
+  selfStart <- FALSE
+}
+
+trans <- "exp"
+```
+
+```{r}
+# Infer each repetition
+infer_list <- vector(mode = "list", 
+                     length = nrep_each)
+
+for(rep in 1:nrep_each) {
+  sim <- simul_list[[rep]]
+  
+  # Format data
+  sim$markType <- factor(sim$markType)
+  sim$camera <- factor(sim$camera)
+  
+  # Create marked point process object
+  p <- markedPointProcess(pointData = sim,
+                          idVar = 'camera')
+  
+  # Infer model
+  m <- pointProcessModel(as.formula(f),
+                         data = p,
+                         family = ppstat::Hawkes(phi),
+                         N = Nbasis,
+                         lambda = lbda,
+                         support = ndays,
+                         selfStart = selfStart)
+  
+  # Transform model
+  mod_df <- getPlotData(m, alpha = 0.05, trans = trans)
+  
+  # Change variables names
+  mod_df <- mod_df |> 
+    mutate(response = gsub(response, 
+                           pattern = "^M", replacement = "s")) |> 
+    mutate(variable = gsub(variable, 
+                           pattern = "^M", replacement = "s"))
+  mod_df <- mod_df |> 
+  rename("time" = "x",
+         "excitefunc" = "value",
+         "to" = "response",
+         "from" = "variable")
+  
+  infer_list[[rep]] <- mod_df
+}
+
+names(infer_list) <- simnames
+```
+
+## Check inferred parameters values
+
+```{r}
+alpha <- 0.05
+
+yintercept <- ifelse(is.null(trans),
+                     0, do.call(trans, list(0)))
+```
+
+### Pick one repetition
+
+```{r}
+mod <- infer_list[[1]]
+```
+
+```{r, fig.width=8, fig.height=6}
+plot_interactions(mod, 
+                  scale = "hours",
+                  textsize = 12,
+                  timestep = 12) +
+  geom_hline(aes(yintercept = yintercept)) +
+  geom_ribbon(aes(x = time, 
+                  ymin = cf.lower, ymax = cf.upper), 
+              fill = "cornflowerblue", alpha = 0.5)
+```
+
+
+### Compare true and inferred models
+
+```{r}
+# Transform true model
+true_df <- lapply(seq_along(interac), 
+                  function(i) lapply(seq_along(interac[[i]]), 
+                                     function(j) data.frame(time = times, from = names(interac[[i]])[j], excitefunc = interac[[i]][[j]], to = names(interac)[i])))
+
+true_df <- unlist(true_df, recursive = FALSE)
+true_df <- do.call("rbind", true_df)
+
+true_df <- true_df |> 
+  mutate(cf.lower = NA, cf.upper = NA, .before = to) |> 
+  mutate(rep = "true")
+true_df <- true_df |> 
+  mutate(excitefunc = do.call(trans, list(excitefunc)))
+```
+
+```{r}
+infer_df <- lapply(seq_along(infer_list), 
+                   function(i) infer_list[[i]] |> mutate(rep = names(infer_list)[i]))
+infer_df <- do.call("rbind", infer_df)
+```
+
+```{r}
+plot_df <- true_df |> bind_rows(infer_df)
+
+plot_interactions_simu(plot_df) +
+  geom_hline(aes(yintercept = yintercept))
+
+# Export plot
+ggsave(file.path(figures_path, "inference_ppstat.jpeg"),
+       width = 16, height = 12, dpi = 600, units = "cm", bg = "white")
+```
+
