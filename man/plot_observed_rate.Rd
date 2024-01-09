@@ -22,6 +22,7 @@ plot_observed_rate(
   cols,
   ylabel = TRUE,
   log = FALSE,
+  line_geom = c("step", "line"),
   xlab = "Time (days)"
 )
 }
@@ -66,6 +67,9 @@ and the correponding points.}
 \item{ylabel}{display labels ?}
 
 \item{log}{if TRUE, the scales will be plotted on a log10 axis.}
+
+\item{line_geom}{The `geom` to use for the interaction function line: `geom_step`
+(adapted for `UnitEvents`) or `geom_line`.}
 
 \item{xlab}{xlabel to display (optional)}
 }

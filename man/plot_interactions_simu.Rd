@@ -4,7 +4,19 @@
 \alias{plot_interactions_simu}
 \title{Plot interaction function for simulation}
 \usage{
-plot_interactions_simu(df, title = NA, level = 0.05)
+plot_interactions_simu(
+  df,
+  title = NA,
+  textsize = 10,
+  baseline = 0,
+  timestep = NA,
+  line_geom = c("step", "line"),
+  col_true = "brown3",
+  col_infer = "darkblue",
+  col_conf = "cornflowerblue",
+  alpha_conf = 0.5,
+  level = 0.05
+)
 }
 \arguments{
 \item{df}{a dataframe containing values for the inferred function(s)
@@ -15,6 +27,24 @@ from/to: ID of the species
 time: time in days}
 
 \item{title}{optional plot title}
+
+\item{textsize}{text minimal size (for x and y axes)}
+
+\item{baseline}{Baseline against which to compare interaction functions.
+Defaults to zero (adapted for UnitEvents model).}
+
+\item{timestep}{optional timestep for x-axis.}
+
+\item{line_geom}{The `geom` to use for the interaction function line: `geom_step`
+(adapted for `UnitEvents`) or `geom_line`.}
+
+\item{col_true}{Color of the true function}
+
+\item{col_infer}{Color of the inferred function}
+
+\item{col_conf}{Color of the confidence interval around the inferred function}
+
+\item{alpha_conf}{Transparency of the confidence interval around the inferred function}
 
 \item{level}{confidence level to use around simulations}
 }

@@ -22,6 +22,7 @@
 #' @importFrom dplyr select
 #' @importFrom dplyr summarize
 #' @importFrom dplyr ungroup
+#' @importFrom ggplot2 .data
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 as_labeller
 #' @importFrom ggplot2 coord_equal

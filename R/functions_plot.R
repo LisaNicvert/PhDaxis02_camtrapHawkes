@@ -35,6 +35,14 @@
 #' @param h Horizontal spacing between plots (if separate self)
 #' @param baseline Baseline against which to compare interaction functions.
 #' Defaults to zero (adapted for UnitEvents model).
+#' @param line_geom The `geom` to use for the interaction function line: `geom_step`
+#' (adapted for `UnitEvents`) or `geom_line`.
+#' @param confint If you want confidence intervals around the value of the interaction function, 
+#' use this argument. The first element is the name of the column containing the lowest bound 
+#' of the confidence interval and the second element is the highest bound.
+#' If `NULL` (the default) no confidence interval is plotted.
+#' @param col_conf Color of the confidence interval
+#' @param alpha_conf Transparency of the confidence interval
 #'
 #' @return ggplot object, a plot with the pairwise interaction functions between species.
 #' @export
@@ -47,6 +55,10 @@ plot_interactions <- function(ue_df,
                               ystep = NA,
                               textsize = 10,
                               linesize = .5, 
+                              line_geom = c("step", "line"),
+                              confint = NULL,
+                              col_conf = "cornflowerblue",
+                              alpha_conf = 0.7,
                               h = 0.3,
                               baseline = 0,
                               separate_self = FALSE
@@ -60,6 +72,10 @@ plot_interactions <- function(ue_df,
   
   if(relative){
     ue_df_plot$excitefunc <- ue_df_plot$excitefunc/ue_df_plot$spont
+  }
+  
+  if (length(line_geom) > 1) {
+    line_geom <- line_geom[1]
   }
   
   # If timestep not set
@@ -77,8 +93,34 @@ plot_interactions <- function(ue_df,
     names(silhouettes_self)[length(silhouettes_self)] <- "Self-interactions"
   }
   
-  g <- ggplot(ue_df_plot) + 
-    geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
+  g <- ggplot(ue_df_plot)
+  
+  if (line_geom == "step") { # Will plot steps
+    
+    if (!is.null(confint)) { # If confidence intervals needed
+      g <- g + 
+        pammtools::geom_stepribbon(aes(x = time, 
+                                       ymin = .data[[confint[1]]], ymax = .data[[confint[2]]]), 
+                                   fill = col_conf, alpha = alpha_conf)
+    }
+    
+    g <- g +
+      geom_step(aes(x=time, y=excitefunc), linewidth = linesize)
+    
+  } else if (line_geom == "line"){ # Will plot a smooth line
+    
+    if (!is.null(confint)) { # If confidence intervals needed
+      g <- g + 
+        geom_ribbon(aes(x = time, 
+                        ymin = .data[[confint[1]]], ymax = .data[[confint[2]]]), 
+                    fill = col_conf, alpha = alpha_conf)
+    }
+    
+    g <- g + 
+      geom_line(aes(x = time, y = excitefunc), linewidth = linesize)
+  }
+  
+  g <- g + 
     geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
                        sec.axis = dup_axis(name = "Is impacted by..."),
@@ -104,8 +146,32 @@ plot_interactions <- function(ue_df,
                 ymin = -Inf, ymax = Inf) +
       ggtitle("Cross-species interactions")
     
-    g2 <- ggplot(self) + 
-      geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
+    g2 <- ggplot(self)
+    if (line_geom == "step") { # Will plot steps
+      
+      if (!is.null(confint)) { # If confidence intervals needed
+        g2 <- g2 + 
+          pammtools::geom_stepribbon(aes(x = time, 
+                                         ymin = .data[[confint[1]]], ymax = .data[[confint[2]]]), 
+                                     fill = col_conf, alpha = alpha_conf)
+      }
+      
+      g2 <- g2 + 
+        geom_step(aes(x = time, y = excitefunc), linewidth = linesize)
+    } else if (line_geom == "line"){ # Will plot a smooth line
+      
+      if (!is.null(confint)) { # If confidence intervals needed
+        g2 <- g2 + 
+          geom_ribbon(aes(x = time, 
+                          ymin = .data[[confint[1]]], ymax = .data[[confint[2]]]), 
+                      fill = col_conf, alpha = alpha_conf)
+      }
+      
+      g2 <- g2 + 
+        geom_line(aes(x = time, y = excitefunc), linewidth = linesize)
+    }
+    
+    g2 <- g2 +
       geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
       theme_linedraw() +
       scale_x_continuous(breaks = seq(0, max(ue_df_plot$time), by = timestep),
@@ -406,6 +472,8 @@ plot_graph <- function(g, layout = c(),
 #' @param ylabel display labels ?
 #' @param xlab xlabel to display (optional)
 #' @param log if TRUE, the scales will be plotted on a log10 axis.
+#' @param line_geom The `geom` to use for the interaction function line: `geom_step`
+#' (adapted for `UnitEvents`) or `geom_line`.
 #'
 #' @return A ggplot object generated with patchwork.
 #'   Multiple plots in the same column, where all plots are paired,
@@ -428,6 +496,7 @@ plot_observed_rate <- function(rates,
                                cols,
                                ylabel = TRUE,
                                log = FALSE,
+                               line_geom = c("step", "line"),
                                xlab = "Time (days)"){
   
   if(missing(t1)){
@@ -435,6 +504,10 @@ plot_observed_rate <- function(rates,
   }
   if(missing(t2)){
     t2 <- max(data$stamp)
+  }
+  
+  if (length(line_geom) > 1) {
+    line_geom <- line_geom[1]
   }
   
   # Filter rates and data 
@@ -492,9 +565,17 @@ plot_observed_rate <- function(rates,
     sub_spp <- res_sub %>% filter(species == sp)
     obs_spp <- obs_sub %>% filter(species == sp)
     
-    l <- ggplot(sub_spp) + 
-      geom_step(aes(x = time, y = lambda), col = cols[sp],
-                linewidth = lwd) +
+    if (line_geom == "step") {
+      l <- ggplot(sub_spp) + 
+        geom_step(aes(x = time, y = lambda), col = cols[sp],
+                  linewidth = lwd)
+    } else if (line_geom == "line"){
+      l <- ggplot(sub_spp) + 
+        geom_line(aes(x = time, y = lambda), col = cols[sp],
+                  linewidth = lwd)
+    }
+    
+    l <- l +
       theme_linedraw() +
       theme(text = element_text(size = textsize), 
             axis.text.x = element_blank(),
@@ -599,16 +680,43 @@ plot_observed_rate <- function(rates,
 #'   from/to: ID of the species
 #'   time: time in days
 #' @param title optional plot title
+#' @param timestep optional timestep for x-axis.
 #' @param level confidence level to use around simulations
-#'
+#' @param baseline Baseline against which to compare interaction functions.
+#' Defaults to zero (adapted for UnitEvents model).
+#' @param line_geom The `geom` to use for the interaction function line: `geom_step`
+#' (adapted for `UnitEvents`) or `geom_line`.
+#' @param textsize text minimal size (for x and y axes)
+#' @param col_true Color of the true function
+#' @param col_infer Color of the inferred function
+#' @param col_conf Color of the confidence interval around the inferred function
+#' @param alpha_conf Transparency of the confidence interval around the inferred function
+#' 
 #' @return A ggplot of the interaction functions where the true function 
 #' is in red and the inferred function in blue with a confidence 
 #' interval (if there were several inferred models.)
 #' @export
 plot_interactions_simu <- function(df, 
                        title = NA, 
+                       textsize = 10,
+                       baseline = 0,
+                       timestep = NA,
+                       line_geom = c("step", "line"),
+                       col_true = "brown3",
+                       col_infer = "darkblue",
+                       col_conf = "cornflowerblue",
+                       alpha_conf = 0.5,
                        level = 0.05){
-
+  
+  if (length(line_geom) > 1) {
+    line_geom <- line_geom[1]
+  }
+  
+  # If timestep not set
+  if(is.na(timestep)){
+    timestep <- df$time[2] - df$time[1]
+  }
+  
   simul <- df %>% filter(rep != "true")
   true <- df %>% filter(rep == "true")
   
@@ -622,25 +730,48 @@ plot_interactions_simu <- function(df,
   
   g <- ggplot(data = simul, aes(x = time))
   
-  g <- g + pammtools::geom_stepribbon(aes(ymin = inf, ymax = sup), 
-                           fill = "cornflowerblue", alpha = 0.5) +
-    geom_step(aes(y = median), col = "blue") +
-    geom_step(data = true, 
-              aes(y = excitefunc), col = "red")
+  if (line_geom == "step") { # Will plot steps
+    g <- g + pammtools::geom_stepribbon(aes(ymin = inf, ymax = sup), 
+                                        fill = col_conf, alpha = alpha_conf) +
+      geom_step(aes(y = median), col = col_infer) +
+      geom_step(data = true, 
+                aes(y = excitefunc), col = col_true)
+  } else if (line_geom == "line"){ # Will plot a smooth line
+    g <- g + geom_ribbon(aes(ymin = inf, ymax = sup), 
+                         fill = col_conf, alpha = alpha_conf) +
+      geom_line(aes(y = median), col = col_infer) +
+      geom_line(data = true, 
+                aes(y = excitefunc), col = col_true)
+  }
   
   g <-  g +
-    geom_hline(yintercept = 0, col = "black", linetype = "dashed") +
-    facet_grid(from ~ to, switch="y") +
+    geom_hline(yintercept = baseline, col = "black", linetype = "dashed") +
+    facet_grid(rows = vars(to),
+               cols = vars(from), 
+               switch="y") +
     theme_linedraw() +
     theme(panel.grid.minor = element_blank()) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          strip.background = element_rect(fill = "white", colour = "black", 
-                                          linewidth = 1),
-          strip.text = element_text(color = "black")) +
-    ylab("Excitation functions") + xlab("Time (days)")
+    theme(axis.text.x = element_text(size = textsize),
+          axis.text.x.top = element_blank(),
+          axis.ticks.x.top = element_blank(),
+          axis.text.y = element_text(size = textsize),
+          panel.spacing = grid::unit(0.5, "lines"),
+          axis.title = element_text(size = textsize*1.2),
+          axis.title.x.bottom = element_text(size = textsize*1.16, 
+                                             face = "italic"),
+          title = element_text(size = textsize*1.2),
+          strip.background = element_rect(fill = "white", 
+                                          colour = "black"),
+          strip.text = element_text(size = textsize, color = "black")) +
+    scale_x_continuous(paste0("Time (days)"),
+                       sec.axis = dup_axis(name = "Is impacted by..."),
+                       breaks = seq(0, max(df$time), by = timestep),
+                       limits = c(0, max(df$time))) +
+    ylab("Occurrence rate of...")
   
   if(!is.na(title)){
-    g <- g + ggtitle(title)
+    g <- g + ggtitle(title) +
+      theme(plot.title = element_text(size = textsize*1.2))
   }
   g
 }

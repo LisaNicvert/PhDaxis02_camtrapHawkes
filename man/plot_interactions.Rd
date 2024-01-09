@@ -14,6 +14,10 @@ plot_interactions(
   ystep = NA,
   textsize = 10,
   linesize = 0.5,
+  line_geom = c("step", "line"),
+  confint = NULL,
+  col_conf = "cornflowerblue",
+  alpha_conf = 0.7,
   h = 0.3,
   baseline = 0,
   separate_self = FALSE
@@ -46,6 +50,18 @@ markdown codes containing a <img src='pato_to_image'/> element.}
 \item{textsize}{text minimal size (for x and y axes)}
 
 \item{linesize}{linewidth}
+
+\item{line_geom}{The `geom` to use for the interaction function line: `geom_step`
+(adapted for `UnitEvents`) or `geom_line`.}
+
+\item{confint}{If you want confidence intervals around the value of the interaction function, 
+use this argument. The first element is the name of the column containing the lowest bound 
+of the confidence interval and the second element is the highest bound.
+If `NULL` (the default) no confidence interval is plotted.}
+
+\item{col_conf}{Color of the confidence interval}
+
+\item{alpha_conf}{Transparency of the confidence interval}
 
 \item{h}{Horizontal spacing between plots (if separate self)}
 

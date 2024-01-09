@@ -29,8 +29,6 @@ library(patchwork)
 library(ggtext)
 
 library(camtrapHawkes)
-
-source(here("R/functions_ppstat.R"))
 ```
 
 ## Parameters
@@ -40,7 +38,7 @@ source(here("R/functions_ppstat.R"))
 nspecies <- 5
 
 duration_days <- 2 # interaction function support (A in ppstat framework)
-stepfunc <- 0.01
+stepfunc <- 0.005
 
 spont <- log(0.2) # Background rate
 strength <- log(3) # Max strength of the interaction function
@@ -100,7 +98,7 @@ dat <- data.frame(t = times,
                   f = exp(fs))
 
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
-  ggtitle(paste("Strength:", exp(strength))) +
+  ggtitle(paste0("True interaction function (strength = ", exp(strength), ")")) +
   theme_linedraw() +
   xlab("Time (days)") +
   ylab(expression(paste("Intensity (", day^{-1}, ")")))
@@ -278,15 +276,21 @@ yintercept <- ifelse(is.null(trans),
 mod <- infer_list[[1]]
 ```
 
-```{r, fig.width=8, fig.height=6}
+```{r, fig.width=6, fig.height=4}
 plot_interactions(mod, 
                   scale = "hours",
-                  textsize = 12,
-                  timestep = 12) +
-  geom_hline(aes(yintercept = yintercept)) +
-  geom_ribbon(aes(x = time, 
-                  ymin = cf.lower, ymax = cf.upper), 
-              fill = "cornflowerblue", alpha = 0.5)
+                  textsize = 9, 
+                  timestep = 12,
+                  baseline = yintercept,
+                  line_geom = "line",
+                  confint = c("cf.lower", "cf.upper"),
+                  alpha_conf = .9)
+
+# ggsave(file.path(figures_path, "test.jpeg"),
+#        bg = "white",
+#        width =  6, height = 4,
+#        dpi = 600,
+#        device = grDevices::jpeg)
 ```
 
 
@@ -312,16 +316,23 @@ true_df <- true_df |>
 infer_df <- lapply(seq_along(infer_list), 
                    function(i) infer_list[[i]] |> mutate(rep = names(infer_list)[i]))
 infer_df <- do.call("rbind", infer_df)
+
+plot_df <- true_df |> bind_rows(infer_df)
 ```
 
 ```{r}
-plot_df <- true_df |> bind_rows(infer_df)
-
-plot_interactions_simu(plot_df) +
-  geom_hline(aes(yintercept = yintercept))
+plot_interactions_simu(plot_df,
+                       baseline = yintercept,
+                       timestep = 1,
+                       textsize = 9, 
+                       alpha_conf = 1,
+                       line_geom = "line")
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat.jpeg"),
-       width = 16, height = 12, dpi = 600, units = "cm", bg = "white")
+       bg = "white",
+       width =  6, height = 4,
+       dpi = 600,
+       device = grDevices::jpeg)
 ```
 

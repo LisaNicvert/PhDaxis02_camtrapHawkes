@@ -100,7 +100,7 @@ plt_ue <- ue_model_to_df(u_inf[[estimator]])
 
 # --- Plot
 plot_interactions(plt_ue,
-                  scale = "hours", 
+                  scale = "hours",
                   silhouettes = silhouettes_labs,
                   textsize = 12,
                   timestep = 12,
