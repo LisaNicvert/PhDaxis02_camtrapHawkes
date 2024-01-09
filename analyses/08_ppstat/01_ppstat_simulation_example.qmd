@@ -57,6 +57,9 @@ cols <- RColorBrewer::brewer.pal(nspecies, "Dark2")
 # Name palette
 spp_names <- paste0("s", 1:nspecies)
 names(cols) <- spp_names
+
+# --- Figures
+figures_path <- here("figures/08_ppstat")
 ```
 
 ## Create model
@@ -76,10 +79,16 @@ dat <- data.frame(t = times,
                   f = exp(fs))
 
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
-  ggtitle(paste("Strength:", exp(strength))) +
+  xlab("Delay between j and i (days)") +
+  ylab(expression(paste("Intensity (", day^{-1}, ")"))) +
   theme_linedraw() +
-  xlab("Time (days)") +
-  ylab(expression(paste("Intensity (", day^{-1}, ")")))
+  theme(axis.title = element_text(size = 11),
+        axis.title.y = element_blank(),
+        axis.text = element_text(size = 10))
+
+# Export plot
+ggsave(file.path(figures_path, "function.jpeg"),
+       width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
 ```
 
 ### Plot interaction network
@@ -123,8 +132,11 @@ plot_graph(g,
            coltext = "white",
            layout = lay,
            textsize = 6, 
-           s = 12) + 
-  ggtitle("True interaction network")
+           s = 12)
+
+# Export plot
+ggsave(file.path(figures_path, "graph.jpeg"),
+       width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
 ```
 
 ## Simulate data under model
@@ -192,10 +204,22 @@ lambda_rate <- lambda_rate |>
 ```
 
 ```{r, fig.width=10, fig.height=13}
-plot_observed_rate(lambda_rate, 
-                   data = Tdf, 
-                   textsize = 10,
-                   hpoints = 2, hlambda = 3, lwd = 0.5, t1 = 0,
+plot_observed_rate(lambda_rate, data = Tdf, 
                    timestep = 1,
+                   textsize = 10,
+                   t1 = 0,
+                   t2 = 10,
+                   hlambda = 5,
+                   hpoints = 2,
+                   ptsize = 1, # 1.3,
+                   minor_spacing = 0,
+                   major_spacing = 1,
+                   max_lambda = 250,
+                   lwd = .5,
+                   ybreaks = seq(0, 250, by = 100),
                    cols = cols)
+
+# Export plot
+ggsave(file.path(figures_path, "realization.jpeg"),
+       width = 10, height = 13, dpi = 600, units = "cm", bg = "white")
 ```
