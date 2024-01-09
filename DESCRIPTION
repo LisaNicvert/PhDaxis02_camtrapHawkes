@@ -1,6 +1,6 @@
 Package: camtrapHawkes
 Title: Analyze camera trap data with Hawkes processes
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: 
     person("Lisa", "Nicvert", , "lisa.nicvert@univ-lyon1.fr", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0006-5763-0865"))
