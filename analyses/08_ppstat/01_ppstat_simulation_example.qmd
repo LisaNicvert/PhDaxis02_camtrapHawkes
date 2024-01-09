@@ -29,8 +29,6 @@ library(patchwork)
 library(ggtext)
 
 library(camtrapHawkes)
-
-source(here("R/functions_ppstat.R"))
 ```
 
 ## Parameters
