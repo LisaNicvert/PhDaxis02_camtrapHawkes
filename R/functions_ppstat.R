@@ -1,14 +1,32 @@
+# Header #############################################################
+# 
+# Author: Lisa Nicvert
+# Email:  lisa.nicvert@univ-lyon1.fr
+# 
+# Date: 2024-01-09
+#
+# Script Description: functions to handle ppstat data
+
+
+#' Get ppstat coefficients
+#' 
+#' Returns the coefficients an inferred ppstat model.
+#'
+#' @param model model object used for ppstat.
+#' @param term dimension to pick (ie species index)
+#' @param alpha wanted confidence level
+#'
+#' @return A dataframe with columns `coef_id`, `species`, `coef`, `lower`
+#' and `upper`.
+#' 
+#' @export
 get_ppstat_coeffs <- function(model, term, alpha = 0.05){
-  # Returns the coefficients of a ppstat model.
-  # model is the model object used for ppstat.
-  # term is the dimension to pick (ie species index)
-  # alpha is the wanted confidence level (default = 5 %)
   
   # Get model formula
   mod.formula <- model@models[[term]]@formula
   
   # Get the index and then name of the response variable
-  response.index <- attr(terms(mod.formula), "response")
+  response.index <- attr(stats::terms(mod.formula), "response")
   response.spp <- all.vars(mod.formula)[response.index]
   
   # Get model coefficients
@@ -23,7 +41,7 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   summ <- as.data.frame(summ)
   summ$coeff_id <- rnames
   
-  e <- qnorm(1-alpha/2) # epsilon
+  e <- stats::qnorm(1-alpha/2) # epsilon
   
   # Get estimates
   coef <- summ$Estimate
@@ -45,9 +63,17 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
 }
 
 
-my_getTermPlotData <- function(model, alpha = 0.05, trans = NULL, ...) {
-  # Helper function for getPlotData
-  # Rewritten from getTermPlotData in ppstat package
+#' get termplot data
+#' 
+#' Helper function for getPlotData (rewritten from 
+#' getTermPlotData in ppstat package)
+#'
+#' @param model model
+#' @param alpha confidence level
+#' @param trans transformation to apply to the results (eg "exp")
+#'
+#' @return the plot data
+my_getTermPlotData <- function(model, alpha = 0.05, trans = NULL) {
   
   if (alpha <= 0 || alpha > 1) # Check alpha = confidence level
     stop("The 'alpha' level must be in (0,1]")
@@ -55,10 +81,10 @@ my_getTermPlotData <- function(model, alpha = 0.05, trans = NULL, ...) {
     se <- FALSE
   }else{
     se <- TRUE
-    q <- qnorm(1-alpha/2)
+    q <- stats::qnorm(1-alpha/2)
   }
   
-  linearFilter <- getLinearFilter(model, se = se, nr = 400)
+  linearFilter <- ppstat::getLinearFilter(model, se = se, nr = 400)
   
   if (se){ # if a confidence interval is needed
     moltenFilter <- reshape2::melt(linearFilter$linearFilter, id.vars = "x")
@@ -80,14 +106,28 @@ my_getTermPlotData <- function(model, alpha = 0.05, trans = NULL, ...) {
 
 
 
+#' Get plot data
+#'
+#' Function to return data used for termPlots in ppstat.
+#' Draws heavily on `termPlot` function from `ppstat` package (but
+#' `getTermPlotData` is replaced with `my_getTermPlotData`).
+#' 
+#' @param model ppstat model
+#' @param ... other arguments passed to `my_getTermPlotData` inside the function.
+#'
+#' @return A dataframe with columns:
+#' 
+#' + `x` = time (delay)
+#' + `variable` = control variables (species from)
+#' + `value` = value of excitation function
+#' + `response` = response variable (species to)
+#' 
+#' @export
 getPlotData <-function (model, ...){
-  # Function to return data used for termPlots in ppstat
-  # Draws heavily on termPlot function from ppstat package.
-  # returns a dataframe with columns 
-  #   x = time (delay)
-  #   variable = control variables (species from)
-  #   value = value of excitation function
-  #   response = response variable (species to)
+  
+  # 
+  # 
+
   .local <- function(model, alpha = 0.05, layer = geom_line(), 
                      trans = NULL, ...){
     noFilterModels <- sapply(model@models, function(m) length(m@filterTerms) == 0)
@@ -111,7 +151,7 @@ getPlotData <-function (model, ...){
     plotData$variable <- factor(plotData$variable, levels = variableLevels)
     responseLevels <- allLevels[allLevels %in% levels(plotData$response)]
     plotData$response <- factor(plotData$response, levels = responseLevels)
-    xLabel <- processData(model@models[[1]])@positionVar
+    xLabel <- ppstat::processData(model@models[[1]])@positionVar
     return(plotData)
   }
   .local(model, ...)

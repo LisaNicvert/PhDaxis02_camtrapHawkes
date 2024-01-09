@@ -21,6 +21,7 @@ plot_observed_rate(
   ybreaks,
   cols,
   ylabel = TRUE,
+  log = FALSE,
   xlab = "Time (days)"
 )
 }
@@ -63,6 +64,8 @@ and the correponding points.}
 \item{cols}{named vector for colors: names are species names and contain colors}
 
 \item{ylabel}{display labels ?}
+
+\item{log}{if TRUE, the scales will be plotted on a log10 axis.}
 
 \item{xlab}{xlabel to display (optional)}
 }

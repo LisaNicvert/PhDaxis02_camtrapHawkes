@@ -15,10 +15,12 @@ plot_background_rate(
 }
 \arguments{
 \item{ue_df}{ue_df: dataframe with results of UnitEvents inference. Must have columns:
-time
-excitefunc
-from
-to}
+
++ spont
++ to
+
+The function will group values of "spont" per "to" and get the unique values that should
+be unique for each species.}
 
 \item{title}{plot title}
 

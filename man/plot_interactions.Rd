@@ -14,15 +14,18 @@ plot_interactions(
   ystep = NA,
   textsize = 10,
   linesize = 0.5,
+  h = 0.3,
+  baseline = 0,
   separate_self = FALSE
 )
 }
 \arguments{
 \item{ue_df}{dataframe with results of UnitEvents inference. Must have columns:
-time
-excitefunc
-from
-to}
+
++ time
++ excitefunc
++ from
++ to}
 
 \item{scale}{days or hours, following whether we want the time axis
 graduated in days or hours}
@@ -43,6 +46,11 @@ markdown codes containing a <img src='pato_to_image'/> element.}
 \item{textsize}{text minimal size (for x and y axes)}
 
 \item{linesize}{linewidth}
+
+\item{h}{Horizontal spacing between plots (if separate self)}
+
+\item{baseline}{Baseline against which to compare interaction functions.
+Defaults to zero (adapted for UnitEvents model).}
 
 \item{separate_self}{whether to separate auto-interactions and plot them above}
 }

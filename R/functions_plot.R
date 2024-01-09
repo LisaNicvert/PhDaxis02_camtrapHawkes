@@ -33,6 +33,8 @@
 #' @param linesize linewidth
 #' @param separate_self whether to separate auto-interactions and plot them above
 #' @param h Horizontal spacing between plots (if separate self)
+#' @param baseline Baseline against which to compare interaction functions.
+#' Defaults to zero (adapted for UnitEvents model).
 #'
 #' @return ggplot object, a plot with the pairwise interaction functions between species.
 #' @export
@@ -46,6 +48,7 @@ plot_interactions <- function(ue_df,
                               textsize = 10,
                               linesize = .5, 
                               h = 0.3,
+                              baseline = 0,
                               separate_self = FALSE
 ){
   
@@ -76,7 +79,7 @@ plot_interactions <- function(ue_df,
   
   g <- ggplot(ue_df_plot) + 
     geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
-    geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
+    geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
                        sec.axis = dup_axis(name = "Is impacted by..."),
                        breaks = seq(0, max(ue_df_plot$time), by = timestep),
@@ -103,7 +106,7 @@ plot_interactions <- function(ue_df,
     
     g2 <- ggplot(self) + 
       geom_step(aes(x=time, y=excitefunc), linewidth = linesize) +
-      geom_hline(yintercept = 0, linetype = "dashed", linewidth = linesize) + 
+      geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
       theme_linedraw() +
       scale_x_continuous(breaks = seq(0, max(ue_df_plot$time), by = timestep),
                          limits = c(0, max(ue_df_plot$time))) +
@@ -251,7 +254,7 @@ plot_background_rate <- function(ue_df,
   if(write_label) {
     g <- g + 
       geom_text(aes(label = round(spont, 3)), nudge_x = nudge_label,
-                size = textsize/ggplot2:::.pt)
+                size = textsize/ggplot2::.pt)
   }
   
   if(!is.na(title)) {
@@ -402,11 +405,13 @@ plot_graph <- function(g, layout = c(),
 #' @param cols named vector for colors: names are species names and contain colors 
 #' @param ylabel display labels ?
 #' @param xlab xlabel to display (optional)
+#' @param log if TRUE, the scales will be plotted on a log10 axis.
 #'
 #' @return A ggplot object generated with patchwork.
 #'   Multiple plots in the same column, where all plots are paired,
 #'   the top plot representing the intensity and the bottom plot the actual
 #'   occurrences for one species.
+#'   
 #' @export
 plot_observed_rate <- function(rates, 
                                data, 

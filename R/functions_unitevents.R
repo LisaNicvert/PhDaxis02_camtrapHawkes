@@ -410,9 +410,9 @@ compute_box <- function(d, use_stamps = FALSE){
   # --- Compute stamps from custom origin
   if (!use_stamps) {
     orig <- min(d$datetime)
-    hour(orig) <- 00
-    minute(orig) <- 00
-    second(orig) <- 00
+    lubridate::hour(orig) <- 00
+    lubridate::minute(orig) <- 00
+    lubridate::second(orig) <- 00
     
     dstamp <- add_stamps(d, origin = orig)
   } else {

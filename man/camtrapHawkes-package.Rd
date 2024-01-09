@@ -4,9 +4,9 @@
 \name{camtrapHawkes-package}
 \alias{camtrapHawkes}
 \alias{camtrapHawkes-package}
-\title{camtrapHawkes: analyze camera trap data with Hawkes processes}
+\title{camtrapHawkes: Analyze camera trap data with Hawkes processes}
 \description{
-This project contains the code to reproduce the analyses from the article "Using the multivariate Hawkes model to study interactions between multiple species from camera trap data". The aim is to use the multivariate Hawkes point process to analyze camera trap data by performing simulations and analyzing real camera trap data from the Snapshot Safari project.
+Helper functions to infer a Hawkes process from camera trap data. This code relies heavily on the UnitEvents package (https://sourcesup.renater.fr/frs/?group_id=3267) for Hawkes process simulation and inference but implements helper functions for formatting and plotting.
 }
 \author{
 \strong{Maintainer}: Lisa Nicvert \email{lisa.nicvert@univ-lyon1.fr} (\href{https://orcid.org/0009-0006-5763-0865}{ORCID})
