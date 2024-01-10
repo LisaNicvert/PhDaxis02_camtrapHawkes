@@ -9,6 +9,9 @@ plot_background_rate(
   title = NA,
   textsize = 10,
   silhouettes = NA,
+  confint = NULL,
+  col_conf = "cornflowerblue",
+  width_conf = 0.2,
   write_label = FALSE,
   nudge_label = 0.3
 )
@@ -30,6 +33,14 @@ be unique for each species.}
 If it exists, must be a named vector with each name 
 corresponding to a species name in ue_df. The elements are 
 markdown codes containing a <img src='pato_to_image'/> element.}
+
+\item{confint}{If you want confidence intervals around the value of the background rate, 
+use this argument. The first element is the name of the column containing the lowest bound 
+of the confidence interval and the second element is the highest bound.}
+
+\item{col_conf}{Color of the error bars}
+
+\item{width_conf}{Width of error bars}
 
 \item{write_label}{write background rates values besides the points?}
 

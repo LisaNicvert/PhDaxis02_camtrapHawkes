@@ -291,9 +291,14 @@ plot_interactions <- function(ue_df,
 #' If it exists, must be a named vector with each name 
 #' corresponding to a species name in ue_df. The elements are 
 #' markdown codes containing a <img src='pato_to_image'/> element.
+#' @param confint If you want confidence intervals around the value of the background rate, 
+#' use this argument. The first element is the name of the column containing the lowest bound 
+#' of the confidence interval and the second element is the highest bound.
 #' @param write_label write background rates values besides the points?
 #' @param nudge_label if the background rates are written, by how much should they 
 #' be nudged on the x-axis?
+#' @param col_conf Color of the error bars
+#' @param width_conf Width of error bars
 #'
 #' @return a ggplot object, representing background rates for each species.
 #' @export
@@ -301,14 +306,34 @@ plot_background_rate <- function(ue_df,
                                  title = NA,
                                  textsize = 10,
                                  silhouettes = NA,
+                                 confint = NULL,
+                                 col_conf = "cornflowerblue",
+                                 width_conf = 0.2,
                                  write_label = FALSE,
                                  nudge_label = 0.3) {
-
-  spont_plot <- ue_df %>% group_by(to) %>%
-    summarize(spont = unique(spont)) %>%
-    rename("species" = "to")
   
-  g <- ggplot(spont_plot, aes(x = species, y = spont)) + 
+  if (!is.null(confint)) {
+    spont_plot <- ue_df %>% group_by(to) %>%
+      summarize(spont = unique(spont),
+                lower_conf = unique(.data[[confint[1]]]),
+                upper_conf = unique(.data[[confint[2]]])) %>%
+      rename("species" = "to")
+  } else {
+    spont_plot <- ue_df %>% group_by(to) %>%
+      summarize(spont = unique(spont)) %>%
+      rename("species" = "to")
+  }
+
+  
+  
+  g <- ggplot(spont_plot, aes(x = species, y = spont))
+  
+  if (!is.null(confint)) {
+    g <- g + geom_errorbar(aes(ymin = lower_conf, ymax = upper_conf, 
+                               x = species),
+                           width = width_conf, col = col_conf)
+  }
+  g <- g +
     geom_point() +
     theme_linedraw() +
     theme(axis.title.x = element_blank(),
