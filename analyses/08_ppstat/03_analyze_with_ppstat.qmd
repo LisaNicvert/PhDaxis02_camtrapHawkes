@@ -53,6 +53,12 @@ startknot_hour <- -pi/4
 endknot_hour <- 2*pi + pi/4
 by_hour <- (3/24)*2*pi
 ord_hour <- 3
+
+# Plot parameters
+alpha_conf <- 0.7
+
+# --- Figures
+figures_path <- here("figures/08_ppstat")
 ```
 
 ## Read data
@@ -181,6 +187,7 @@ yintercept <- ifelse(is.null(trans),
 ### Model with no covariates
 
 ```{r}
+#| code-fold: true
 # --- Silhouettes path
 silhouettes_path <- here("data/species_silhouettes/")
 silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path, 
@@ -205,21 +212,31 @@ mod_df <- getPlotData(m_nocov, alpha = 0.05, trans = trans)
 ```
 
 ```{r, fig.width=8, fig.height=6}
+#| code-fold: true
 mod_df2 <- mod_df |> 
   rename("time" = "x",
          "excitefunc" = "value",
          "to" = "response",
-         "from" = "variable")
+         "from" = "variable") |> 
+  mutate(from = as.character(from),
+         to = as.character(to))
 
 plot_interactions(mod_df2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
-                  textsize = 12,
-                  timestep = 12) +
-  geom_hline(aes(yintercept = yintercept)) +
-  geom_ribbon(aes(x = time, 
-                  ymin = cf.lower, ymax = cf.upper), 
-              fill = "cornflowerblue", alpha = 0.5)
+                  baseline = yintercept,
+                  timestep = 12,
+                  textsize = 11, 
+                  confint = c("cf.lower", "cf.upper"),
+                  alpha_conf = alpha_conf,
+                  line_geom = "line")
+
+# Export plot
+ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
+       bg = "white",
+       width = 8, height = 6,
+       dpi = 600,
+       device = grDevices::jpeg)
 ```
 
 ```{r get_ppstat_coeffs_nocov, echo = FALSE}
@@ -244,22 +261,31 @@ if(!is.null(trans)){
 ```
 
 ```{r}
+#| code-fold: true
+
+# Get all coefficients modelling spontaneous rate
 pattern = "(Intercept)"
-# Get all coefficients modelling spontaneous rate rhythm
 coef_spont <- coef_nocov[grep(pattern = pattern, 
                               x = coef_nocov$coef_id),]
 ```
 
 ```{r}
+#| code-fold: true
 coef_spont2 <- coef_spont |> 
   rename("spont" = "coef",
-         "to" = "species")
+         "to" = "species") |> 
+  mutate(to = as.character(to))
 
 plot_background_rate(coef_spont2,
-                     silhouettes = silhouettes_labs) +
-  geom_errorbar(data = coef_spont2, 
-                aes(ymin = lower, ymax = upper, x = to),
-                width = 0.2, col = "darkgrey")
+                     silhouettes = silhouettes_labs,
+                     confint = c("lower", "upper"))
+
+# Export plot
+ggsave(file.path(figures_path, "background_rates_nocov.jpeg"),
+       bg = "white",
+       width =  6, height = 4,
+       dpi = 600,
+       device = grDevices::jpeg)
 ```
 
 ### Model with covariates
@@ -269,21 +295,32 @@ mod_df_cov <- getPlotData(m_cov, alpha = 0.05, trans = trans)
 ```
 
 ```{r, fig.height=6, fig.width=8}
+#| code-fold: true
+
 mod_df_cov2 <- mod_df_cov |> 
   rename("time" = "x",
          "excitefunc" = "value",
          "to" = "response",
-         "from" = "variable")
+         "from" = "variable") |> 
+  mutate(from = as.character(from),
+         to = as.character(to))
 
 plot_interactions(mod_df_cov2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
-                  textsize = 12,
-                  timestep = 12) +
-  geom_hline(aes(yintercept = yintercept), col = "red") +
-  geom_ribbon(aes(x = time, 
-                  ymin = cf.lower, ymax = cf.upper), 
-              fill = "cornflowerblue", alpha = 0.5)
+                  baseline = yintercept,
+                  timestep = 12,
+                  textsize = 11, 
+                  confint = c("cf.lower", "cf.upper"),
+                  alpha_conf = alpha_conf,
+                  line_geom = "line")
+
+# Export plot
+ggsave(file.path(figures_path, "inference_ppstat_cov.jpeg"),
+       bg = "white",
+       width = 8, height = 6,
+       dpi = 600,
+       device = grDevices::jpeg)
 ```
 
 Compute the spline transformation of the circular time.
@@ -341,7 +378,7 @@ coef_hour <- coef_cov[grep(pattern = pattern,
 coef_spont <- coef_cov[grep(pattern = "(Intercept)", 
                             x = coef_cov$coef_id),]
 
-species_list <- unique(coef_hour$species)
+species_list <- sort(as.character(unique(coef_hour$species)))
 
 # Initialise empty dataframe to fill with different spp
 df_hour <- data.frame()
@@ -376,18 +413,19 @@ for(i in 1:length(species_list)){
 ```
 
 ```{r, include=FALSE}
+#| code-fold: true
 coef_spont2 <- coef_spont |> 
   rename("spont" = "coef",
-         "to" = "species")
+         "to" = "species") |> 
+  mutate(to = as.character(to))
 
 plot_background_rate(coef_spont2,
-                     silhouettes = silhouettes_labs) +
-  geom_errorbar(data = coef_spont2, 
-                aes(ymin = lower, ymax = upper, x = to),
-                width = 0.2, col = "darkgrey")
+                     silhouettes = silhouettes_labs,
+                     confint = c("lower", "upper"))
 ```
 
 ```{r}
+#| code-fold: true
 silhouettes_title <- c(impala = paste0("Impala <img src='", 
                                        silhouettes_path, 
                                        "impala.png'", " height='15'/>"),
@@ -406,7 +444,10 @@ silhouettes_title <- c(impala = paste0("Impala <img src='",
 ```
 
 ```{r plot_circadian}
+#| code-fold: true
 glist <- list()
+
+textsize <- 11
 
 for(s in species_list){
   res_filtered <- df_hour |> filter(species == s)
@@ -415,7 +456,7 @@ for(s in species_list){
     geom_ribbon(aes(x = hour, ymin = lower, 
                     ymax = upper),
                 fill = "cornflowerblue", 
-                alpha = 0.5) +
+                alpha = alpha_conf) +
     geom_line(aes(x = hour, y = estimate)) +
     scale_x_continuous(limits = c(0, 24),
                        breaks = seq(0, 24, by = 4)) +
@@ -423,17 +464,21 @@ for(s in species_list){
     xlab("Time of the day") +
     ggtitle(silhouettes_title[[s]]) 
   
-  if (s == species_list[[1]]) { # Keep y axis for first plot
-    g <- g + 
-      ylab("Background rate") +
-      theme(plot.title = element_markdown(color = "black", size = 15))
-  } else {
+  # Common theme for text size
+  g <- g +
+    theme(axis.text.x = element_text(size = textsize),
+          plot.title = element_markdown(color = "black", 
+                                        size = textsize*1.4),
+          axis.title = element_text(size = textsize*1.2))
+  
+  if (s != species_list[[1]]) { # Remove y axis for all plots except first one
     g <- g + 
       theme(axis.title.y = element_blank(), 
             axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            plot.title = element_markdown(color = "black",
-                                          size = 15))
+            axis.ticks.y = element_blank())
+  } else { # Keep y axis for first plot
+    g <- g + 
+      ylab("Background rate")
   }
 
   glist <- c(glist, list(g))
@@ -442,5 +487,13 @@ for(s in species_list){
 
 
 ```{r print_plot, fig.width=12, fig.height=3}
+#| code-fold: true
 wrap_plots(glist, ncol = 5) & ylim(c(0, 2))
+
+# Export plot
+ggsave(file.path(figures_path, "background_rates_cov.jpeg"),
+       bg = "white",
+       width = 10, height = 3,
+       dpi = 600,
+       device = grDevices::jpeg)
 ```

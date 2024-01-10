@@ -72,7 +72,11 @@ times <- seq(0, duration_days, by = stepfunc)
 ```{r}
 fs <- create_funcshape("exp", times = times, 
                        strength = strength, t = t)
-  
+```
+
+
+```{r}
+#| code-fold: true
 dat <- data.frame(t = times,
                   f = exp(fs))
 
@@ -106,6 +110,7 @@ interac[["s4"]][["s2"]] <- fs
 ```
 
 ```{r}
+#| code-fold: true
 # Transform data to graph
 mat <- matrix(nrow = nspecies, ncol = nspecies)
 colnames(mat) <- spp_names
@@ -202,6 +207,7 @@ lambda_rate <- lambda_rate |>
 ```
 
 ```{r, fig.width=10, fig.height=13}
+#| code-fold: true
 plot_observed_rate(lambda_rate, data = Tdf, 
                    timestep = 1,
                    textsize = 10,

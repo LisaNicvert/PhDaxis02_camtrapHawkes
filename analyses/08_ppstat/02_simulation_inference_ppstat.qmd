@@ -49,7 +49,7 @@ t <- 0.5 # half life for the exponential interaction function
 n_cameras <- 25 # number of cameras
 Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
 
-nrep_each <- 3 # repeat each simulation x times
+nrep_each <- 10 # repeat each simulation x times
 
 # Inference parameters ---
 # Inference
@@ -67,12 +67,6 @@ endknot_spp <- 2 + 12/24 # last knot
 by_spp <- 6/24 # knots spacing (in days)
 ord <- 3 # order of splines (degree <- ord-1)
 trunc <- NULL # truncate? (avoid edge effects)
-
-# Hour
-# startknot_hour <- -pi/4
-# endknot_hour <- 2*pi + pi/4
-# by_hour <- (3/24)*2*pi
-# ord_hour <- 3
 
 # --- Figures
 figures_path <- here("figures/08_ppstat")
@@ -93,7 +87,11 @@ spp_names <- paste0("s", 1:nspecies)
 ```{r}
 fs <- create_funcshape("exp", times = times, 
                        strength = strength, t = t)
-  
+```
+
+
+```{r}
+#| code-fold: true
 dat <- data.frame(t = times,
                   f = exp(fs))
 
@@ -121,6 +119,8 @@ interac[["s4"]][["s2"]] <- fs
 ```
 
 ```{r}
+#| code-fold: true
+
 # Transform data to graph
 mat <- matrix(nrow = nspecies, ncol = nspecies)
 colnames(mat) <- spp_names
@@ -277,6 +277,7 @@ mod <- infer_list[[1]]
 ```
 
 ```{r, fig.width=6, fig.height=4}
+#| code-fold: true
 plot_interactions(mod, 
                   scale = "hours",
                   textsize = 9, 
@@ -284,7 +285,7 @@ plot_interactions(mod,
                   baseline = yintercept,
                   line_geom = "line",
                   confint = c("cf.lower", "cf.upper"),
-                  alpha_conf = .9)
+                  alpha_conf = 0.7)
 
 # ggsave(file.path(figures_path, "test.jpeg"),
 #        bg = "white",
@@ -321,11 +322,12 @@ plot_df <- true_df |> bind_rows(infer_df)
 ```
 
 ```{r}
+#| code-fold: true
 plot_interactions_simu(plot_df,
                        baseline = yintercept,
                        timestep = 1,
                        textsize = 9, 
-                       alpha_conf = 1,
+                       alpha_conf = 0.7,
                        line_geom = "line")
 
 # Export plot
