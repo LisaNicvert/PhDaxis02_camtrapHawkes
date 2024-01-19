@@ -37,19 +37,19 @@ library(camtrapHawkes)
 # Model ------
 nspecies <- 5
 
-duration_days <- 2 # interaction function support (A in ppstat framework)
+duration_days <- 3 # interaction function support (A in ppstat framework)
 stepfunc <- 0.005
 
 spont <- log(0.2) # Background rate
-strength <- log(3) # Max strength of the interaction function
+strength <- log(5) # Max strength of the interaction function
 
 t <- 0.5 # half life for the exponential interaction function
 
 # Simulation params -----
 n_cameras <- 25 # number of cameras
-Tmax <- c(20, 100, 300, 400, 500) # total number of trapping days
+Tmax <- 300 # total number of trapping days
 
-nrep_each <- 10 # repeat each simulation x times
+nrep_each <- 1 # repeat each simulation x times
 
 # Inference parameters ---
 # Inference
@@ -59,17 +59,24 @@ lbda <- 1 # lambda (not clear)
 
 # Model
 # Splines basis
-Nbasis <- 100 # number of spline basis -> controls "bins width" together with knots
+Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
 # Species
-startknot_spp <- -12/24 # first knot
-endknot_spp <- 2 + 12/24 # last knot
+startknot_spp <- -ndays*0.4 # first knot
+endknot_spp <- ndays # last knot
 by_spp <- 6/24 # knots spacing (in days)
-ord <- 3 # order of splines (degree <- ord-1)
+ord <- 4 # order of splines (degree <- ord-1)
 trunc <- NULL # truncate? (avoid edge effects)
 
 # --- Figures
 figures_path <- here("figures/08_ppstat")
+
+# --- Perform simu and inference
+perform_simu <- TRUE
+simu_file <- here("outputs/08_ppstat/simulations.rds")
+
+perform_inference <- TRUE
+inference_file <- here("outputs/08_ppstat/inference.rds")
 ```
 
 ## Create true model
@@ -85,7 +92,7 @@ spp_names <- paste0("s", 1:nspecies)
 ### Interaction function
 
 ```{r}
-fs <- create_funcshape("exp", times = times, 
+fs <- create_funcshape("exp", times = times,
                        strength = strength, t = t)
 ```
 
@@ -163,18 +170,26 @@ simnames <- paste0("s", 1:nrep_each)
 simul_list <- vector(mode = "list", 
                      length = nrep_each)
 
-for (rep in 1:nrep_each) {
-  sim <- data.frame()
-  for(cam in 1:n_cameras) {
-    sim_cam <- Ogata(tLim = Tmax[3], n = 5000, lambda = lbd)
-    sim_cam$camera <- paste0("C", cam)
-    
-    sim <- rbind(sim, sim_cam)
+if (perform_simu) {
+  for (rep in 1:nrep_each) {
+    sim <- data.frame()
+    for(cam in 1:n_cameras) {
+      sim_cam <- Ogata(tLim = Tmax, n = 5000, lambda = lbd)
+      sim_cam$camera <- paste0("C", cam)
+      
+      sim <- rbind(sim, sim_cam)
+    }
+    simul_list[[rep]] <- sim
   }
-  simul_list[[rep]] <- sim
+  
+  names(simul_list) <- simnames
+
+  saveRDS(simul_list,
+          simu_file)
+} else {
+  simul_list <- readRDS(simu_file)
 }
 
-names(simul_list) <- simnames
 ```
 
 ```{r}
@@ -220,45 +235,53 @@ trans <- "exp"
 infer_list <- vector(mode = "list", 
                      length = nrep_each)
 
-for(rep in 1:nrep_each) {
-  sim <- simul_list[[rep]]
+if (perform_inference) {
+  for(rep in 1:nrep_each) {
+    sim <- simul_list[[rep]]
+    
+    # Format data
+    sim$markType <- factor(sim$markType)
+    sim$camera <- factor(sim$camera)
+    
+    # Create marked point process object
+    p <- markedPointProcess(pointData = sim,
+                            idVar = 'camera')
+    
+    # Infer model
+    m <- pointProcessModel(as.formula(f),
+                           data = p,
+                           family = ppstat::Hawkes(phi),
+                           N = Nbasis,
+                           lambda = lbda,
+                           support = ndays,
+                           selfStart = selfStart)
+    
+    # Transform model
+    mod_df <- getPlotData(m, alpha = 0.05, trans = trans)
+    
+    # Change variables names
+    mod_df <- mod_df |> 
+      mutate(response = gsub(response, 
+                             pattern = "^M", replacement = "s")) |> 
+      mutate(variable = gsub(variable, 
+                             pattern = "^M", replacement = "s"))
+    mod_df <- mod_df |> 
+    rename("time" = "x",
+           "excitefunc" = "value",
+           "to" = "response",
+           "from" = "variable")
+    
+    infer_list[[rep]] <- mod_df
+  }
   
-  # Format data
-  sim$markType <- factor(sim$markType)
-  sim$camera <- factor(sim$camera)
+  names(infer_list) <- simnames
   
-  # Create marked point process object
-  p <- markedPointProcess(pointData = sim,
-                          idVar = 'camera')
-  
-  # Infer model
-  m <- pointProcessModel(as.formula(f),
-                         data = p,
-                         family = ppstat::Hawkes(phi),
-                         N = Nbasis,
-                         lambda = lbda,
-                         support = ndays,
-                         selfStart = selfStart)
-  
-  # Transform model
-  mod_df <- getPlotData(m, alpha = 0.05, trans = trans)
-  
-  # Change variables names
-  mod_df <- mod_df |> 
-    mutate(response = gsub(response, 
-                           pattern = "^M", replacement = "s")) |> 
-    mutate(variable = gsub(variable, 
-                           pattern = "^M", replacement = "s"))
-  mod_df <- mod_df |> 
-  rename("time" = "x",
-         "excitefunc" = "value",
-         "to" = "response",
-         "from" = "variable")
-  
-  infer_list[[rep]] <- mod_df
+  saveRDS(infer_list,
+          inference_file)
+} else {
+  infer_list <- readRDS(inference_file)
 }
 
-names(infer_list) <- simnames
 ```
 
 ## Check inferred parameters values
@@ -331,7 +354,7 @@ plot_interactions_simu(plot_df,
                        line_geom = "line")
 
 # Export plot
-ggsave(file.path(figures_path, "inference_ppstat.jpeg"),
+ggsave(file.path(figures_path, "inference_ppstat_simu.jpeg"),
        bg = "white",
        width =  6, height = 4,
        dpi = 600,

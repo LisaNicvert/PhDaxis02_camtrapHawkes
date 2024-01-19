@@ -43,6 +43,7 @@
 #' If `NULL` (the default) no confidence interval is plotted.
 #' @param col_conf Color of the confidence interval
 #' @param alpha_conf Transparency of the confidence interval
+#' @param col_baseline Color of the line used to show the baseline
 #'
 #' @return ggplot object, a plot with the pairwise interaction functions between species.
 #' @export
@@ -58,6 +59,7 @@ plot_interactions <- function(ue_df,
                               line_geom = c("step", "line"),
                               confint = NULL,
                               col_conf = "cornflowerblue",
+                              col_baseline = "black",
                               alpha_conf = 0.7,
                               h = 0.3,
                               baseline = 0,
@@ -121,7 +123,8 @@ plot_interactions <- function(ue_df,
   }
   
   g <- g + 
-    geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
+    geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize,
+               col = col_baseline) + 
     scale_x_continuous(paste0("Time (", scale, ")"),
                        sec.axis = dup_axis(name = "Is impacted by..."),
                        breaks = seq(0, max(ue_df_plot$time), by = timestep),
@@ -172,7 +175,8 @@ plot_interactions <- function(ue_df,
     }
     
     g2 <- g2 +
-      geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize) + 
+      geom_hline(yintercept = baseline, linetype = "dashed", linewidth = linesize,
+                 col = col_baseline) + 
       theme_linedraw() +
       scale_x_continuous(breaks = seq(0, max(ue_df_plot$time), by = timestep),
                          limits = c(0, max(ue_df_plot$time))) +

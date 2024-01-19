@@ -22,6 +22,7 @@ library(dplyr)
 
 library(patchwork)
 library(ggtext)
+library(scales)
 
 library(camtrapHawkes)
 
@@ -34,25 +35,25 @@ source(here("R/functions_ppstat.R"))
 set.seed(42)
 
 # Misc
-ndays <- 2 # support of interaction function
+ndays <- 1.5 # support of interaction function
 phi <- "log" # shape of excitation function
 lbd <- 1 # lambda (not clear)
 
 # Splines basis
-Nbasis <- 100 # number of spline basis -> controls "bins width" together with knots
+Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
 # Species
-startknot_spp <- -12/24 # first knot
-endknot_spp <- 2 + 12/24 # last knot
-by_spp <- 6/24 # knots spacing (in days)
-ord <- 3 # order of splines (degree <- ord-1)
+startknot_spp <- -ndays*0.4 # first knot (value chosen in accordance with the pilot study of Carstensen et al 2010: in their study the first knot is placed at 0.4*range)
+endknot_spp <- ndays # last knot
+by_spp <- 6/24 # knots spacing (in days) (~ in accordance with Carstensen et al 2010)
+ord <- 4 # order of splines (degree <- ord-1)
 trunc <- NULL # truncate? (avoid edge effects)
 
 # Hour
-startknot_hour <- -pi/4
-endknot_hour <- 2*pi + pi/4
+startknot_hour <- 0
+endknot_hour <- 2*pi 
 by_hour <- (3/24)*2*pi
-ord_hour <- 3
+ord_hour <- 4
 
 # Plot parameters
 alpha_conf <- 0.7
@@ -221,6 +222,7 @@ mod_df2 <- mod_df |>
   mutate(from = as.character(from),
          to = as.character(to))
 
+ymax <- 8.5
 plot_interactions(mod_df2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
@@ -228,8 +230,10 @@ plot_interactions(mod_df2,
                   timestep = 12,
                   textsize = 11, 
                   confint = c("cf.lower", "cf.upper"),
+                  col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line")
+                  line_geom = "line") +
+  ylim(c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
@@ -238,6 +242,7 @@ ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
        dpi = 600,
        device = grDevices::jpeg)
 ```
+
 
 ```{r get_ppstat_coeffs_nocov, echo = FALSE}
 # Get species count
@@ -312,8 +317,10 @@ plot_interactions(mod_df_cov2,
                   timestep = 12,
                   textsize = 11, 
                   confint = c("cf.lower", "cf.upper"),
+                  col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line")
+                  line_geom = "line") +
+  ylim(c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_cov.jpeg"),
@@ -488,7 +495,7 @@ for(s in species_list){
 
 ```{r print_plot, fig.width=12, fig.height=3}
 #| code-fold: true
-wrap_plots(glist, ncol = 5) & ylim(c(0, 2))
+wrap_plots(glist, ncol = 5) & ylim(c(0, 0.87))
 
 # Export plot
 ggsave(file.path(figures_path, "background_rates_cov.jpeg"),
