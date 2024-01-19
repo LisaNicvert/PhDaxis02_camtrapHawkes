@@ -41,8 +41,8 @@ t <- 0.5 # half life for the exponential interaction function
 strength <- log(5) # Max strength of the interaction function
 stepfunc <- 0.01
 
-duration_days <- 2 # interaction function support (A in ppstat framework)
-spont <- log(0.5) # Background rate
+duration_days <- 3 # interaction function support (A in ppstat framework)
+spont <- log(0.2) # Background rate
 
 nspecies <- 5
 
@@ -70,7 +70,7 @@ times <- seq(0, duration_days, by = stepfunc)
 ### Plot interaction function
 
 ```{r}
-fs <- create_funcshape("exp", times = times, 
+fs <- create_funcshape("exp", times = times,
                        strength = strength, t = t)
 ```
 
@@ -81,15 +81,17 @@ dat <- data.frame(t = times,
                   f = exp(fs))
 
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
   xlab("Delay between j and i (days)") +
   ylab(expression(paste("Intensity (", day^{-1}, ")"))) +
   theme_linedraw() +
   theme(axis.title = element_text(size = 11),
         axis.title.y = element_blank(),
-        axis.text = element_text(size = 10))
+        axis.text = element_text(size = 10)) +
+  ylim(c(0, exp(strength)))
 
 # Export plot
-ggsave(file.path(figures_path, "function.jpeg"),
+ggsave(file.path(figures_path, "function_ppstat.jpeg"),
        width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
 ```
 
@@ -138,7 +140,7 @@ plot_graph(g,
            s = 12)
 
 # Export plot
-ggsave(file.path(figures_path, "graph.jpeg"),
+ggsave(file.path(figures_path, "graph_ppstat.jpeg"),
        width = 8, height = 6, dpi = 600, units = "cm", bg = "white")
 ```
 
@@ -218,12 +220,12 @@ plot_observed_rate(lambda_rate, data = Tdf,
                    ptsize = 1, # 1.3,
                    minor_spacing = 0,
                    major_spacing = 1,
-                   max_lambda = 250,
+                   max_lambda = 10,
                    lwd = .5,
-                   ybreaks = seq(0, 250, by = 100),
+                   ybreaks = seq(0, 10, by = 4),
                    cols = cols)
 
 # Export plot
-ggsave(file.path(figures_path, "realization.jpeg"),
+ggsave(file.path(figures_path, "realization_ppstat.jpeg"),
        width = 10, height = 13, dpi = 600, units = "cm", bg = "white")
 ```

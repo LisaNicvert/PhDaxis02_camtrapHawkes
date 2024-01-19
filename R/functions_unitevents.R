@@ -79,7 +79,7 @@ create_interactions <- function(spp_names, times){
 #' @param funcshape exp, gamma or linear
 #' @param times times vector
 #' @param t half-life (time value for which the function reaches strength/2).
-#'   only used when funcshape == "exp"
+#'   only used when funcshape == "exp")
 #' @param strength function max strength coefficient
 #'
 #' @return A numeric vector of the same length as the times vector containing 
