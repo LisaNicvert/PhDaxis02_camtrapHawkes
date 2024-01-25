@@ -14,6 +14,10 @@ plot_interactions_simu(
   col_true = "brown3",
   col_infer = "darkblue",
   col_conf = "cornflowerblue",
+  col_baseline = "black",
+  show.legend = FALSE,
+  parse = FALSE,
+  y_angle = 90,
   alpha_conf = 0.5,
   level = 0.05
 )
@@ -43,6 +47,14 @@ Defaults to zero (adapted for UnitEvents model).}
 \item{col_infer}{Color of the inferred function}
 
 \item{col_conf}{Color of the confidence interval around the inferred function}
+
+\item{col_baseline}{Color of the line used to show the baseline}
+
+\item{show.legend}{Show the legend?}
+
+\item{parse}{parse the facet labels?}
+
+\item{y_angle}{Angle for the text in y in the panels}
 
 \item{alpha_conf}{Transparency of the confidence interval around the inferred function}
 

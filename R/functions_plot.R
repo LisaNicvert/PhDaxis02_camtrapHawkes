@@ -720,6 +720,10 @@ plot_observed_rate <- function(rates,
 #' @param col_infer Color of the inferred function
 #' @param col_conf Color of the confidence interval around the inferred function
 #' @param alpha_conf Transparency of the confidence interval around the inferred function
+#' @param parse parse the facet labels?
+#' @param y_angle Angle for the text in y in the panels
+#' @param col_baseline Color of the line used to show the baseline
+#' @param show.legend Show the legend?
 #' 
 #' @return A ggplot of the interaction functions where the true function 
 #' is in red and the inferred function in blue with a confidence 
@@ -734,6 +738,10 @@ plot_interactions_simu <- function(df,
                        col_true = "brown3",
                        col_infer = "darkblue",
                        col_conf = "cornflowerblue",
+                       col_baseline = "black",
+                       show.legend = FALSE,
+                       parse = FALSE,
+                       y_angle = 90,
                        alpha_conf = 0.5,
                        level = 0.05){
   
@@ -756,28 +764,54 @@ plot_interactions_simu <- function(df,
               sup = quantile(excitefunc, 1 - (level/2))[[1]],
               median = median(excitefunc),
               .groups = "drop")
+  simul <- simul |> 
+    mutate(type = "Inferred")
   
-  g <- ggplot(data = simul, aes(x = time))
+  true <- true |> 
+    mutate(median = excitefunc,
+           inf = excitefunc, sup = excitefunc,
+           type = "True")
+  
+  df_all <- true |> bind_rows(simul)
+  
+  g <- ggplot(data = df_all, aes(x = time, y = median, group = type))
   
   if (line_geom == "step") { # Will plot steps
-    g <- g + pammtools::geom_stepribbon(aes(ymin = inf, ymax = sup), 
-                                        fill = col_conf, alpha = alpha_conf) +
-      geom_step(aes(y = median), col = col_infer) +
-      geom_step(data = true, 
-                aes(y = excitefunc), col = col_true)
+    g <- g + pammtools::geom_stepribbon(aes(ymin = inf, ymax = sup, fill = type), 
+                                        alpha = alpha_conf,
+                                        show.legend = show.legend) +
+      geom_step(aes(y = median, col = type),
+                show.legend = show.legend)  
   } else if (line_geom == "line"){ # Will plot a smooth line
-    g <- g + geom_ribbon(aes(ymin = inf, ymax = sup), 
-                         fill = col_conf, alpha = alpha_conf) +
-      geom_line(aes(y = median), col = col_infer) +
-      geom_line(data = true, 
-                aes(y = excitefunc), col = col_true)
+    g <- g + geom_ribbon(aes(ymin = inf, ymax = sup, fill = type), 
+                         alpha = alpha_conf,
+                         show.legend = show.legend) +
+      geom_line(aes(y = median, col = type),
+                show.legend = show.legend)
   }
   
+  g <- g +
+    scale_color_manual("Type", values = c("True" = col_true, "Inferred" = col_infer)) +
+    scale_fill_manual("Type", values = c("True" = "transparent", "Inferred" = col_conf))
+  
+  # labeller <- data.frame(from = unique(df$from), 
+  #                        to = unique(df$to))
+  
   g <-  g +
-    geom_hline(yintercept = baseline, col = "black", linetype = "dashed") +
-    facet_grid(rows = vars(to),
-               cols = vars(from), 
-               switch="y") +
+    geom_hline(yintercept = baseline, col = col_baseline, linetype = "dashed")
+  
+  if (parse) {
+    g <- g +
+      facet_grid(rows = vars(to), cols = vars(from),
+        labeller = ggplot2::label_parsed,
+        switch="y")
+  } else {
+    g <- g +
+      facet_grid(rows = vars(to), cols = vars(from),
+        switch="y")
+  }
+  
+  g <- g +
     theme_linedraw() +
     theme(panel.grid.minor = element_blank()) +
     theme(axis.text.x = element_text(size = textsize),
@@ -791,7 +825,8 @@ plot_interactions_simu <- function(df,
           title = element_text(size = textsize*1.2),
           strip.background = element_rect(fill = "white", 
                                           colour = "black"),
-          strip.text = element_text(size = textsize, color = "black")) +
+          strip.text.x.top = element_text(size = textsize, color = "black"),
+          strip.text.y.left = element_text(size = textsize, color = "black", angle = y_angle)) +
     scale_x_continuous(paste0("Time (days)"),
                        sec.axis = dup_axis(name = "Is impacted by..."),
                        breaks = seq(0, max(df$time), by = timestep),
@@ -802,6 +837,11 @@ plot_interactions_simu <- function(df,
     g <- g + ggtitle(title) +
       theme(plot.title = element_text(size = textsize*1.2))
   }
+  
+  if (show.legend) {
+    g <- g + theme(legend.position = "bottom")
+  }
+  
   g
 }
 

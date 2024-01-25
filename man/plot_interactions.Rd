@@ -17,6 +17,7 @@ plot_interactions(
   line_geom = c("step", "line"),
   confint = NULL,
   col_conf = "cornflowerblue",
+  col_baseline = "black",
   alpha_conf = 0.7,
   h = 0.3,
   baseline = 0,
@@ -60,6 +61,8 @@ of the confidence interval and the second element is the highest bound.
 If `NULL` (the default) no confidence interval is plotted.}
 
 \item{col_conf}{Color of the confidence interval}
+
+\item{col_baseline}{Color of the line used to show the baseline}
 
 \item{alpha_conf}{Transparency of the confidence interval}
 

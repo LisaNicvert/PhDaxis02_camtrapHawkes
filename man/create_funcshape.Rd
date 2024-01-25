@@ -12,7 +12,7 @@ create_funcshape(funcshape, times, t = 0.5, strength)
 \item{times}{times vector}
 
 \item{t}{half-life (time value for which the function reaches strength/2).
-only used when funcshape == "exp"}
+only used when funcshape == "exp")}
 
 \item{strength}{function max strength coefficient}
 }
