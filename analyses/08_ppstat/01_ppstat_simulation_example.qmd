@@ -34,7 +34,7 @@ library(camtrapHawkes)
 ## Parameters
 
 ```{r}
-set.seed(42)
+set.seed(14)
 
 # Network params ------
 t <- 0.5 # half life for the exponential interaction function
@@ -81,7 +81,7 @@ dat <- data.frame(t = times,
                   f = exp(fs))
 
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
-  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
   xlab("Delay between j and i (days)") +
   ylab(expression(paste("Intensity (", day^{-1}, ")"))) +
   theme_linedraw() +
@@ -217,12 +217,12 @@ plot_observed_rate(lambda_rate, data = Tdf,
                    t2 = 10,
                    hlambda = 5,
                    hpoints = 2,
-                   ptsize = 1, # 1.3,
+                   ptsize = 1,
                    minor_spacing = 0,
                    major_spacing = 1,
-                   max_lambda = 10,
-                   lwd = .5,
-                   ybreaks = seq(0, 10, by = 4),
+                   max_lambda = 5,
+                   lwd = .4,
+                   ybreaks = seq(0, 5, by = 2),
                    cols = cols)
 
 # Export plot
