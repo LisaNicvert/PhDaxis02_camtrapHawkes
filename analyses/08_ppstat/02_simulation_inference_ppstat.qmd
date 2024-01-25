@@ -19,8 +19,10 @@ editor: source
 #| message: false
 library(ppstat)
 library(here)
+
 library(lubridate)
 library(dplyr)
+library(stringr)
 
 library(tidygraph)
 library(igraph)
@@ -34,14 +36,16 @@ library(camtrapHawkes)
 ## Parameters
 
 ```{r}
+set.seed(42)
+
 # Model ------
 nspecies <- 5
 
-duration_days <- 3 # interaction function support (A in ppstat framework)
+duration_days <- 1.5 # interaction function support (A in ppstat framework)
 stepfunc <- 0.005
 
 spont <- log(0.2) # Background rate
-strength <- log(5) # Max strength of the interaction function
+strength <- log(3) # Max strength of the interaction function
 
 t <- 0.5 # half life for the exponential interaction function
 
@@ -49,20 +53,19 @@ t <- 0.5 # half life for the exponential interaction function
 n_cameras <- 25 # number of cameras
 Tmax <- 300 # total number of trapping days
 
-nrep_each <- 1 # repeat each simulation x times
+nrep_each <- 100 # repeat each simulation x times
 
 # Inference parameters ---
 # Inference
-ndays <- 2 # support of interaction function
+ndays <- 1.5 # support of interaction function
 phi <- "log" # shape of excitation function
-lbda <- 1 # lambda (not clear)
 
 # Model
 # Splines basis
 Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
 # Species
-startknot_spp <- -ndays*0.4 # first knot
+startknot_spp <- -0.5 # first knot
 endknot_spp <- ndays # last knot
 by_spp <- 6/24 # knots spacing (in days)
 ord <- 4 # order of splines (degree <- ord-1)
@@ -72,10 +75,10 @@ trunc <- NULL # truncate? (avoid edge effects)
 figures_path <- here("figures/08_ppstat")
 
 # --- Perform simu and inference
-perform_simu <- TRUE
+perform_simu <- FALSE
 simu_file <- here("outputs/08_ppstat/simulations.rds")
 
-perform_inference <- TRUE
+perform_inference <- FALSE
 inference_file <- here("outputs/08_ppstat/inference.rds")
 ```
 
@@ -172,6 +175,7 @@ simul_list <- vector(mode = "list",
 
 if (perform_simu) {
   for (rep in 1:nrep_each) {
+    print(paste("Simu: repetition", rep))
     sim <- data.frame()
     for(cam in 1:n_cameras) {
       sim_cam <- Ogata(tLim = Tmax, n = 5000, lambda = lbd)
@@ -208,25 +212,15 @@ simul_list[[1]] |>
 ```{r}
 # Write formula
 spp_names_formula <- paste0("M", seq(1:nspecies))
-f <- write_formula(spp = spp_names_formula, 
-                   startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
-                   by_spp = by_spp,
-                   ord = ord, 
-                   trunc = trunc,
-                   hourcov = FALSE,
-                   ord_hour = ord_hour,
-                   startknot_hour = startknot_hour, endknot_hour = endknot_hour, 
-                   by_hour = by_hour)
+(f <- write_formula(spp = spp_names_formula, 
+                    startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                    by_spp = by_spp,
+                    ord = ord, 
+                    trunc = trunc,
+                    hourcov = FALSE))
 ```
 
 ```{r}
-# Choose inference parameter following phi
-if(phi == "log"){
-  selfStart <- TRUE
-}else if(phi == "identity"){
-  selfStart <- FALSE
-}
-
 trans <- "exp"
 ```
 
@@ -237,6 +231,7 @@ infer_list <- vector(mode = "list",
 
 if (perform_inference) {
   for(rep in 1:nrep_each) {
+    print(paste("Inference: repetition", rep))
     sim <- simul_list[[rep]]
     
     # Format data
@@ -252,9 +247,7 @@ if (perform_inference) {
                            data = p,
                            family = ppstat::Hawkes(phi),
                            N = Nbasis,
-                           lambda = lbda,
-                           support = ndays,
-                           selfStart = selfStart)
+                           support = ndays)
     
     # Transform model
     mod_df <- getPlotData(m, alpha = 0.05, trans = trans)
@@ -345,18 +338,28 @@ plot_df <- true_df |> bind_rows(infer_df)
 ```
 
 ```{r}
+plot_df <- plot_df |> 
+  mutate(to = paste0("italic(", str_replace(to, "\\d", "[\\0]"), ")"),
+         from = paste0("italic(", str_replace(from, "\\d", "[\\0]"), ")"))
+```
+
+```{r}
 #| code-fold: true
 plot_interactions_simu(plot_df,
                        baseline = yintercept,
-                       timestep = 1,
+                       timestep = 0.5,
                        textsize = 9, 
                        alpha_conf = 0.7,
+                       parse = TRUE,
+                       y_angle = 0,
+                       col_baseline = "grey50",
+                       show.legend = TRUE,
                        line_geom = "line")
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_simu.jpeg"),
        bg = "white",
-       width =  6, height = 4,
+       width =  6, height = 5,
        dpi = 600,
        device = grDevices::jpeg)
 ```
