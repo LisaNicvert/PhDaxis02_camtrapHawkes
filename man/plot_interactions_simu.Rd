@@ -14,6 +14,7 @@ plot_interactions_simu(
   col_true = "brown3",
   col_infer = "darkblue",
   col_conf = "cornflowerblue",
+  conf = c("sample", "confint"),
   col_baseline = "black",
   show.legend = FALSE,
   parse = FALSE,
@@ -23,12 +24,14 @@ plot_interactions_simu(
 )
 }
 \arguments{
-\item{df}{a dataframe containing values for the inferred function(s)
-and the true function. It has columns:
-rep: repetition ID (s... for simul, true for true data)
-excitefunc: value of the excitation function
-from/to: ID of the species
-time: time in days}
+\item{df}{a dataframe containing values for the inferred function(s) and the true function. 
+It has columns:
+
++ `rep`: repetition ID (s... for simul, true for true data)
++ `excitefunc`: value of the excitation function
++ `from/to`: ID of the species
++ `time`: time in days
++ if `conf = confint`: `cf.lower` and `cf.upper` with the pre-computed confidence intervals.}
 
 \item{title}{optional plot title}
 
@@ -48,7 +51,13 @@ Defaults to zero (adapted for UnitEvents model).}
 
 \item{col_conf}{Color of the confidence interval around the inferred function}
 
-\item{col_baseline}{Color of the line used to show the baseline}
+\item{conf}{The type of confidence interval to display: either the confidence interval
+computed as the quantiles of the inferred functions (if `sample`) or the median of
+the pre-computed confidence interval (`confint`). The second option is useful when 
+the model was inferred with `ppstat`. If `conf = confint`, 
+`df` must have two additional columns `cf.lower` and `cf.upper`.}
+
+\item{col_baseline}{color of the line for the baseline to compare the function to.}
 
 \item{show.legend}{Show the legend?}
 

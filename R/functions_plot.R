@@ -702,12 +702,14 @@ plot_observed_rate <- function(rates,
 #' 
 #' Plots the inferred interaction functions vs the real function
 #' 
-#' @param df a dataframe containing values for the inferred function(s)
-#'   and the true function. It has columns:
-#'   rep: repetition ID (s... for simul, true for true data)
-#'   excitefunc: value of the excitation function
-#'   from/to: ID of the species
-#'   time: time in days
+#' @param df a dataframe containing values for the inferred function(s) and the true function. 
+#' It has columns:
+#' 
+#' + `rep`: repetition ID (s... for simul, true for true data)
+#' + `excitefunc`: value of the excitation function
+#' + `from/to`: ID of the species
+#' + `time`: time in days
+#' + if `conf = confint`: `cf.lower` and `cf.upper` with the pre-computed confidence intervals.
 #' @param title optional plot title
 #' @param timestep optional timestep for x-axis.
 #' @param level confidence level to use around simulations
@@ -722,8 +724,13 @@ plot_observed_rate <- function(rates,
 #' @param alpha_conf Transparency of the confidence interval around the inferred function
 #' @param parse parse the facet labels?
 #' @param y_angle Angle for the text in y in the panels
-#' @param col_baseline Color of the line used to show the baseline
 #' @param show.legend Show the legend?
+#' @param conf The type of confidence interval to display: either the confidence interval
+#' computed as the quantiles of the inferred functions (if `sample`) or the median of
+#' the pre-computed confidence interval (`confint`). The second option is useful when 
+#' the model was inferred with `ppstat`. If `conf = confint`, 
+#' `df` must have two additional columns `cf.lower` and `cf.upper`.
+#' @param col_baseline color of the line for the baseline to compare the function to.
 #' 
 #' @return A ggplot of the interaction functions where the true function 
 #' is in red and the inferred function in blue with a confidence 
@@ -738,6 +745,7 @@ plot_interactions_simu <- function(df,
                        col_true = "brown3",
                        col_infer = "darkblue",
                        col_conf = "cornflowerblue",
+                       conf = c("sample", "confint"),
                        col_baseline = "black",
                        show.legend = FALSE,
                        parse = FALSE,
@@ -749,6 +757,11 @@ plot_interactions_simu <- function(df,
     line_geom <- line_geom[1]
   }
   
+  if (length(conf) > 1) {
+    conf <- conf[1]
+  }
+  
+  
   # If timestep not set
   if(is.na(timestep)){
     timestep <- df$time[2] - df$time[1]
@@ -759,11 +772,21 @@ plot_interactions_simu <- function(df,
   
   simul <- simul %>% group_by(from, to, time)
   
-  simul <- simul %>%
-    summarize(inf = quantile(excitefunc, level/2)[[1]],
-              sup = quantile(excitefunc, 1 - (level/2))[[1]],
-              median = median(excitefunc),
-              .groups = "drop")
+  if (conf == "sample") {
+    simul <- simul %>%
+      summarize(inf = quantile(excitefunc, level/2)[[1]],
+                sup = quantile(excitefunc, 1 - (level/2))[[1]],
+                median = median(excitefunc),
+                .groups = "drop")
+  } else if (conf == "confint") {
+    simul <- simul %>%
+      summarize(inf = median(cf.lower),
+                sup = median(cf.upper),
+                median = median(excitefunc),
+                .groups = "drop")
+  }
+  
+  
   simul <- simul |> 
     mutate(type = "Inferred")
   

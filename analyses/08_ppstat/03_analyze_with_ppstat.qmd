@@ -37,15 +37,15 @@ set.seed(42)
 # Misc
 ndays <- 1.5 # support of interaction function
 phi <- "log" # shape of excitation function
-lbd <- 1 # lambda (not clear)
 
 # Splines basis
 Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
 # Species
-startknot_spp <- -ndays*0.4 # first knot (value chosen in accordance with the pilot study of Carstensen et al 2010: in their study the first knot is placed at 0.4*range)
+startknot_spp <- -0.5 # first knot (value chosen to place a knot on zero and improve inference stability , and in accordance with the pilot study of Carstensen et al 2010: in their study the first knot is placed at 0.4*range)
 endknot_spp <- ndays # last knot
-by_spp <- 6/24 # knots spacing (in days) (~ in accordance with Carstensen et al 2010)
+by_spp <- 6/24 # knots spacing (in days) (~ in accordance with Carstensen et al 2010,
+# who have 8 knots from -400 to 1000)
 ord <- 4 # order of splines (degree <- ord-1)
 trunc <- NULL # truncate? (avoid edge effects)
 
@@ -54,12 +54,18 @@ startknot_hour <- 0
 endknot_hour <- 2*pi 
 by_hour <- (3/24)*2*pi
 ord_hour <- 4
+hstep <- 3600 # in seconds
+
+perform_inference <- FALSE
 
 # Plot parameters
 alpha_conf <- 0.7
 
 # --- Figures
 figures_path <- here("figures/08_ppstat")
+
+m_cov_file <- here("outputs/08_ppstat/m_cov.rds")
+m_nocov_file <- here("outputs/08_ppstat/m_nocov.rds")
 ```
 
 ## Read data
@@ -86,92 +92,108 @@ dat <- dat |> filter(!is.na(datetime))
 # Species list
 spp <- unique(dat$snapshotName)
 
-f_nocov <- write_formula(spp = spp, 
-                         startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
-                         by_spp = by_spp,
-                         ord = ord, 
-                         trunc = trunc,
-                         hourcov = FALSE)
+(f_nocov <- write_formula(spp = spp, 
+                          startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                          by_spp = by_spp,
+                          ord = ord, 
+                          trunc = trunc,
+                          hourcov = FALSE))
 
-f_cov <- write_formula(spp = spp, 
-                       startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
-                       by_spp = by_spp,
-                       ord = ord, 
-                       trunc = trunc,
-                       hourcov = TRUE,
-                       ord_hour = ord_hour,
-                       startknot_hour = startknot_hour, endknot_hour = endknot_hour, 
-                       by_hour = by_hour)
+(f_cov <- write_formula(spp = spp, 
+                        startknot_spp = startknot_spp, endknot_spp = endknot_spp, 
+                        by_spp = by_spp,
+                        ord = ord, 
+                        trunc = trunc,
+                        hourcov = TRUE,
+                        ord_hour = ord_hour,
+                        startknot_hour = startknot_hour, endknot_hour = endknot_hour, 
+                        by_hour = by_hour))
 ```
 
 ## Prepare inference
 
 ```{r}
-# Create a "covariates" df
-unitdata <- dat |> 
-  select(locationID, cameraID) |> 
-  unique() |> 
-  rename("id" = "cameraID")
-
-# Select useful columns and rename to accomodate ppstat
-# framework
+# Select useful columns and rename to accommodate ppstat framework
 dat_ppstat <- dat |> 
       dplyr::select(-c(row_ID, locationID)) |> 
   rename("time" = "stamp") |> 
   rename("id" = "cameraID")
 
 dat_ppstat$snapshotName <- factor(dat_ppstat$snapshotName)
-
-# Create time of day (= hour) variable
-dat_ppstat <- dat_ppstat |> 
-  mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24) %>% 
-  select(-datetime) |> 
-  data.frame()
-
 dat_ppstat$id <- factor(dat_ppstat$id)
 
 # Create continuous process for hour covariate
-hour <- dat_ppstat[, c("id", "hour", "time")]  
-p_hour <- continuousProcess(hour, unitData = unitdata)
+dat_ppstat_hour <- dat_ppstat |>
+  group_by(id) |> 
+  summarize(min = min(datetime),
+            max = max(datetime))
+
+df_hour <- data.frame()
+
+for (i in 1:nrow(dat_ppstat_hour)) {
+  row <- dat_ppstat_hour[i, ]
+  dateseq <- seq(row$min - lubridate::ddays(1), row$max + lubridate::ddays(1), by = hstep)
+  df_hour <- rbind(df_hour, data.frame(cameraID = row$id, datetime = dateseq))
+}
+
+df_hour <- df_hour |> 
+  mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24) |> 
+  add_stamps() 
+df_hour <- df_hour |> 
+  rename("id" = "cameraID",
+         "time" = "stamp")
+
+hour <- df_hour[, c("id", "hour", "time")]
+p_hour <- continuousProcess(hour,
+                            positionVar = 'time',
+                            valueVar = 'hour',
+                            idVar = 'id')
 
 # Create marked point process with species occurrences
 dat_ppstat <- dat_ppstat[, c("id", "snapshotName", "time")]
-
+      
 p <- markedPointProcess(pointData = dat_ppstat,
-                        continuousData = p_hour,
+                        continuousData = dat_ppstat$time,
+                        idVar = 'id',
+                        positionVar = 'time',
                         markVar = "snapshotName")
+
+pcov <- markedPointProcess(pointData = dat_ppstat,
+                           continuousData = p_hour,
+                           positionVar = 'time',
+                           idVar = 'id',
+                           value = "hour",
+                           markVar = "snapshotName")
+```
+
+```{r}
+plot(p["SC_05", ])
+plot(pcov["SC_05",])
 ```
 
 ## Inference
 
-```{r}
-if(phi == "log"){
-  selfStart <- TRUE
-}else if(phi == "identity"){
-  selfStart <- FALSE
-}
-```
-
 
 ```{r}
-m_cov <- pointProcessModel(as.formula(f_cov),
-                           data = p,
+if (perform_inference) {
+  m_cov <- pointProcessModel(as.formula(f_cov),
+                           data = pcov,
                            family = ppstat::Hawkes(phi),
                            N = Nbasis,
-                           lambda = lbd,
-                           support = ndays,
-                           selfStart = selfStart)
-```
+                           support = ndays)
+  saveRDS(m_cov, m_cov_file)
 
+  m_nocov <- pointProcessModel(as.formula(f_nocov),
+                               data = p,
+                               family = ppstat::Hawkes(phi),
+                               N = Nbasis,
+                               support = ndays)
+  saveRDS(m_nocov, m_nocov_file)
+} else {
+  m_cov <- readRDS(m_cov_file)
+  m_nocov <- readRDS(m_nocov_file)
+}
 
-```{r}
-m_nocov <- pointProcessModel(as.formula(f_nocov),
-                             data = p,
-                             family = ppstat::Hawkes(phi),
-                             N = Nbasis,
-                             lambda = lbd,
-                             support = ndays,
-                             selfStart = selfStart)
 ```
 
 ## Plot
@@ -222,7 +244,7 @@ mod_df2 <- mod_df |>
   mutate(from = as.character(from),
          to = as.character(to))
 
-ymax <- 8.5
+ymax <- 3
 plot_interactions(mod_df2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
@@ -232,8 +254,8 @@ plot_interactions(mod_df2,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line") +
-  ylim(c(0, ymax))
+                  line_geom = "line")# +
+  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
@@ -319,8 +341,8 @@ plot_interactions(mod_df_cov2,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line") +
-  ylim(c(0, ymax))
+                  line_geom = "line") #+
+  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_cov.jpeg"),
@@ -419,16 +441,16 @@ for(i in 1:length(species_list)){
 }
 ```
 
-```{r, include=FALSE}
+```{r, include=FALSE, eval=FALSE}
 #| code-fold: true
 coef_spont2 <- coef_spont |> 
   rename("spont" = "coef",
          "to" = "species") |> 
   mutate(to = as.character(to))
 
-plot_background_rate(coef_spont2,
-                     silhouettes = silhouettes_labs,
-                     confint = c("lower", "upper"))
+# plot_background_rate(coef_spont2,
+#                      silhouettes = silhouettes_labs,
+#                      confint = c("lower", "upper"))
 ```
 
 ```{r}
@@ -455,6 +477,7 @@ silhouettes_title <- c(impala = paste0("Impala <img src='",
 glist <- list()
 
 textsize <- 11
+step_h_plot <- 6
 
 for(s in species_list){
   res_filtered <- df_hour |> filter(species == s)
@@ -466,9 +489,8 @@ for(s in species_list){
                 alpha = alpha_conf) +
     geom_line(aes(x = hour, y = estimate)) +
     scale_x_continuous(limits = c(0, 24),
-                       breaks = seq(0, 24, by = 4)) +
+                       breaks = seq(0, 24, by = step_h_plot)) +
     theme_linedraw() +
-    xlab("Time of the day") +
     ggtitle(silhouettes_title[[s]]) 
   
   # Common theme for text size
@@ -478,14 +500,21 @@ for(s in species_list){
                                         size = textsize*1.4),
           axis.title = element_text(size = textsize*1.2))
   
-  if (s != species_list[[1]]) { # Remove y axis for all plots except first one
+  if (s == species_list[[1]] | s == species_list[[4]]) { # Keep y axis for first plot of the line
     g <- g + 
-      theme(axis.title.y = element_blank(), 
+      ylab(expression(paste("Background rate (", day^{-1}, ")")))
+  } else { # Remove y axis for all plots except first one
+    g <- g +
+      theme(axis.title.y = element_blank(),
             axis.text.y = element_blank(),
             axis.ticks.y = element_blank())
-  } else { # Keep y axis for first plot
-    g <- g + 
-      ylab("Background rate")
+  }
+  
+  if (s == species_list[[4]] | s == species_list[[5]]) { # Add x lab
+    g <- g + xlab("Time of the day")
+  } else {
+    g <- g +
+      theme(axis.title.x = element_blank())
   }
 
   glist <- c(glist, list(g))
@@ -493,14 +522,21 @@ for(s in species_list){
 ```
 
 
-```{r print_plot, fig.width=12, fig.height=3}
+```{r print_plot, fig.width=6, fig.height=4}
 #| code-fold: true
-wrap_plots(glist, ncol = 5) & ylim(c(0, 0.87))
+
+
+ymax <- max(df_hour$upper)
+
+wrap_plots(glist, nrow = 2) + 
+  plot_layout(axis_titles = "collect") & 
+  ylim(c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "background_rates_cov.jpeg"),
        bg = "white",
-       width = 10, height = 3,
+       # width = 10, height = 3,
+       width = 6, height = 4,
        dpi = 600,
        device = grDevices::jpeg)
 ```

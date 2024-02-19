@@ -41,10 +41,11 @@ set.seed(42)
 # Model ------
 nspecies <- 5
 
-duration_days <- 1.5 # interaction function support (A in ppstat framework)
+
+duration_days <- 2 # interaction function support (A in ppstat framework)
 stepfunc <- 0.005
 
-spont <- log(0.2) # Background rate
+spont <- log(0.1) # Background rate
 strength <- log(3) # Max strength of the interaction function
 
 t <- 0.5 # half life for the exponential interaction function
@@ -95,22 +96,76 @@ spp_names <- paste0("s", 1:nspecies)
 ### Interaction function
 
 ```{r}
-fs <- create_funcshape("exp", times = times,
-                       strength = strength, t = t)
+b <- -1/t*log(1/strength*log((exp(strength)+1))/2)
+
+fs <- strength*exp(-b*times)
 ```
 
+
+```{r}
+#| code-fold: true
+
+dat <- data.frame(t = times,
+                  f = fs)
+
+ggplot(dat) + geom_line(aes(x = t, y = f)) +
+  ggtitle(paste0("True interaction log-function (strength = ", strength, ")")) +
+  theme_linedraw() +
+  geom_hline(yintercept = strength/2, linetype = "dashed") +
+  geom_vline(xintercept = t, linetype = "dashed") +
+  geom_hline(yintercept = 0) +
+  xlab("Time (days)") +
+  ylab(expression(paste("Intensity (", day^{-1}, ")")))
+```
 
 ```{r}
 #| code-fold: true
 dat <- data.frame(t = times,
                   f = exp(fs))
 
+mid <- (exp(strength)+1)/2
+
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
   ggtitle(paste0("True interaction function (strength = ", exp(strength), ")")) +
   theme_linedraw() +
+  geom_hline(yintercept = mid, linetype = "dashed") +
+  geom_vline(xintercept = t, linetype = "dashed") +
+  geom_hline(yintercept = 1) +
   xlab("Time (days)") +
   ylab(expression(paste("Intensity (", day^{-1}, ")")))
 ```
+
+### Background rate
+
+If we could include a non-constant background rate, it would probably look like this:
+
+```{r}
+#| code-fold: true
+hour_rad <- seq(0, 2*pi, by = 0.01)
+background_rate <- log((strength/2)*sin(hour_rad) + strength)
+
+br_df <- data.frame(rad = hour_rad,
+                    hour = hour_rad*(24/(2*pi)),
+                    rate = background_rate,
+                    rate_exp = exp(background_rate))
+
+# ggplot(br_df) + geom_line(aes(x = hour, y = rate)) +
+#   theme_linedraw() +
+#   geom_hline(yintercept = 0) +
+#   geom_hline(yintercept = a, linetype = "dashed") +
+#   scale_x_continuous(limits = c(0, 24), breaks = seq(0, 24, by = 6)) +
+#   xlab("Time (days)") +
+#   ylab(expression(paste("Log-intensity (", day^{-1}, ")")))
+
+ggplot(br_df) + geom_line(aes(x = hour, y = rate_exp)) +
+  theme_linedraw() +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = strength, linetype = "dashed") +
+  scale_x_continuous(limits = c(0, 24), breaks = seq(0, 24, by = 6)) +
+  xlab("Time (days)") +
+  ylab(expression(paste("Intensity (", day^{-1}, ")")))
+```
+
 
 ### Define the interaction network
 
@@ -193,7 +248,6 @@ if (perform_simu) {
 } else {
   simul_list <- readRDS(simu_file)
 }
-
 ```
 
 ```{r}
@@ -353,6 +407,8 @@ plot_interactions_simu(plot_df,
                        parse = TRUE,
                        y_angle = 0,
                        col_baseline = "grey50",
+                       conf = "confint",
+                       # conf = "sample",
                        show.legend = TRUE,
                        line_geom = "line")
 
