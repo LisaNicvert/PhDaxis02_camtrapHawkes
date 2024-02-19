@@ -41,7 +41,7 @@ t <- 0.5 # half life for the exponential interaction function
 strength <- log(5) # Max strength of the interaction function
 stepfunc <- 0.01
 
-duration_days <- 3 # interaction function support (A in ppstat framework)
+duration_days <- 5 # interaction function support (A in ppstat framework)
 spont <- log(0.2) # Background rate
 
 nspecies <- 5
@@ -70,8 +70,9 @@ times <- seq(0, duration_days, by = stepfunc)
 ### Plot interaction function
 
 ```{r}
-fs <- create_funcshape("exp", times = times,
-                       strength = strength, t = t)
+b <- -1/t*log(1/strength*log((exp(strength)+1)/2))
+
+fs <- strength*exp(-b*times)
 ```
 
 
@@ -80,11 +81,15 @@ fs <- create_funcshape("exp", times = times,
 dat <- data.frame(t = times,
                   f = exp(fs))
 
+mid <- (exp(strength) + 1)/2
+
 ggplot(dat) + geom_line(aes(x = t, y = f)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
   xlab("Delay between j and i (days)") +
   ylab(expression(paste("Intensity (", day^{-1}, ")"))) +
   theme_linedraw() +
+  # geom_hline(yintercept = mid, linetype = "dashed") +
+  # geom_vline(xintercept = t, linetype = "dashed") +
   theme(axis.title = element_text(size = 11),
         axis.title.y = element_blank(),
         axis.text = element_text(size = 10)) +

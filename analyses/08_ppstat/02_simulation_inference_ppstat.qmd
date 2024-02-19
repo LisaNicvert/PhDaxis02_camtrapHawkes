@@ -96,7 +96,7 @@ spp_names <- paste0("s", 1:nspecies)
 ### Interaction function
 
 ```{r}
-b <- -1/t*log(1/strength*log((exp(strength)+1))/2)
+b <- -1/t*log(1/strength*log((exp(strength)+1)/2))
 
 fs <- strength*exp(-b*times)
 ```
