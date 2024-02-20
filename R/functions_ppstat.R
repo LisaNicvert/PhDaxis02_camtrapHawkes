@@ -124,12 +124,14 @@ write_formula <- function(spp,
   spp_resp <- paste0("c(", spp_resp, ")")
   
   # Final formula ---
-  # Formula without hour covariate
-  res <- paste0(spp_resp, " ~ ", paste(spp_spline, collapse = " + "))
+  
   
   if (hourcov) {
     # Formula with hour covariates
-    res <- paste0(res, " + ", hour_spline)
+    res <- paste0(spp_resp, " ~ ", hour_spline, " + ", paste(spp_spline, collapse = " + "))
+  } else {
+    # Formula without hour covariate
+    res <- paste0(spp_resp, " ~ ", paste(spp_spline, collapse = " + "))
   }
   
   return(res)
