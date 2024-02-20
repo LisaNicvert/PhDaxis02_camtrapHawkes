@@ -23,6 +23,7 @@ library(dplyr)
 library(patchwork)
 library(ggtext)
 library(scales)
+library(chron)
 
 library(camtrapHawkes)
 
@@ -52,9 +53,9 @@ trunc <- NULL # truncate? (avoid edge effects)
 # Hour
 startknot_hour <- 0
 endknot_hour <- 2*pi 
-by_hour <- (3/24)*2*pi
+by_hour <- (2/24)*2*pi
 ord_hour <- 4
-hstep <- 3600 # in seconds
+hstep <- 30*60 # in seconds
 
 perform_inference <- FALSE
 
@@ -171,6 +172,14 @@ plot(p["SC_05", ])
 plot(pcov["SC_05",])
 ```
 
+```{r}
+rm(df_hour)
+rm(hour)
+rm(dat_ppstat)
+rm(dat_ppstat_hour)
+```
+
+
 ## Inference
 
 
@@ -206,9 +215,6 @@ yintercept <- ifelse(is.null(trans),
                      0, do.call(trans, list(0)))
 ```
 
-
-### Model with no covariates
-
 ```{r}
 #| code-fold: true
 # --- Silhouettes path
@@ -229,6 +235,10 @@ silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path,
                                               "zebra.png'", " height='20'/>",
                                               "<br>*zebra*"))
 ```
+
+### Model with no covariates
+
+
 
 ```{r}
 mod_df <- getPlotData(m_nocov, alpha = 0.05, trans = trans)
@@ -410,7 +420,7 @@ coef_spont <- coef_cov[grep(pattern = "(Intercept)",
 species_list <- sort(as.character(unique(coef_hour$species)))
 
 # Initialise empty dataframe to fill with different spp
-df_hour <- data.frame()
+df_hour_coef <- data.frame()
 
 for(i in 1:length(species_list)){
   sp <- species_list[i]
@@ -437,7 +447,7 @@ for(i in 1:length(species_list)){
                    upper)
   
   # Bind all species values
-  df_hour <- bind_rows(df_hour, df)
+  df_hour_coef <- bind_rows(df_hour_coef, df)
 }
 ```
 
@@ -480,7 +490,7 @@ textsize <- 11
 step_h_plot <- 6
 
 for(s in species_list){
-  res_filtered <- df_hour |> filter(species == s)
+  res_filtered <- df_hour_coef |> filter(species == s)
   
   g <- ggplot(res_filtered) + 
     geom_ribbon(aes(x = hour, ymin = lower, 
@@ -526,7 +536,7 @@ for(s in species_list){
 #| code-fold: true
 
 
-ymax <- max(df_hour$upper)
+ymax <- max(df_hour_coef$upper)
 
 wrap_plots(glist, nrow = 2) + 
   plot_layout(axis_titles = "collect") & 
@@ -540,3 +550,27 @@ ggsave(file.path(figures_path, "background_rates_cov.jpeg"),
        dpi = 600,
        device = grDevices::jpeg)
 ```
+
+Below, we plot the activity times of species:
+
+```{r, fig.width = 6, fig.height = 5}
+dat_h <- dat |>
+  mutate(hour = chron::times(strftime(datetime,"%H:%M:%S")))
+
+ggplot(dat_h) + 
+  geom_density(aes(x = hour*24, group = snapshotName), 
+               alpha = 0.5,
+               show.legend = FALSE) + 
+  scale_x_continuous(breaks = seq(0, 24, by = 4)) +
+  facet_wrap(vars(snapshotName), 
+             labeller = as_labeller(silhouettes_labs),
+             ncol = 3) +
+  theme_linedraw() +
+  ggtitle("Species observed circadian rhythms") +
+  ylab("Density") +
+  xlab("Time of the day") +
+  theme(strip.text = element_markdown(color = "black", 
+                                      size = textsize),
+        strip.background = element_rect(fill="white"))
+```
+
