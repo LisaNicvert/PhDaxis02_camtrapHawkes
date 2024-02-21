@@ -166,7 +166,7 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   coef <- model@models[[term]]@coefficients
   
   # Get coefficient table
-  summ <- summary(model@models[[term]])$coefficients
+  summ <- ppstat::summary(model)[[term]]$coefficients
   rnames <- names(rownames(summ))
   
   rownames(summ) <- NULL
@@ -195,97 +195,31 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   return(res)
 }
 
-
-#' get termplot data
+#' Get ppstat interactions
+#'
+#' Get toe interaction functions for ppstat
 #' 
-#' Helper function for getPlotData (rewritten from 
-#' getTermPlotData in ppstat package)
-#'
-#' @param model model
-#' @param alpha confidence level
-#' @param trans transformation to apply to the results (eg "exp")
-#'
-#' @return the plot data
-my_getTermPlotData <- function(model, alpha = 0.05, trans = NULL) {
-  
-  if (alpha <= 0 || alpha > 1) # Check alpha = confidence level
-    stop("The 'alpha' level must be in (0,1]")
-  if (isTRUE(all.equal(alpha, 1))) { # check if confidence level is one (ie no confidence interval)
-    se <- FALSE
-  }else{
-    se <- TRUE
-    q <- stats::qnorm(1-alpha/2)
-  }
-  
-  linearFilter <- ppstat::getLinearFilter(model, se = se, nr = 400)
-  
-  if (se){ # if a confidence interval is needed
-    moltenFilter <- reshape2::melt(linearFilter$linearFilter, id.vars = "x")
-    plotData <- cbind(moltenFilter,
-                      data.frame(cf.lower = moltenFilter$value - q*unlist(linearFilter$se),
-                                 cf.upper = moltenFilter$value + q*unlist(linearFilter$se)))
-    if (!is.null(trans))
-      plotData[, c("value", "cf.lower", "cf.upper")] <- do.call(trans, 
-                                                                list(plotData[, c("value", 
-                                                                                  "cf.lower", 
-                                                                                  "cf.upper")]))
-  }else{ # no confidence interval
-    plotData <- reshape2::melt(linearFilter, id.vars = "x")
-    if(!is.null(trans))
-      plotData$value <- do.call(trans, plotData$value)
-  }
-  return(plotData)
-}
-
-
-
-#' Get plot data
-#'
-#' Function to return data used for termPlots in ppstat.
-#' Draws heavily on `termPlot` function from `ppstat` package (but
-#' `getTermPlotData` is replaced with `my_getTermPlotData`).
-#' 
-#' @param model ppstat model
-#' @param ... other arguments passed to `my_getTermPlotData` inside the function.
+#' @param model ppstat model (assumed to be multivariate)
+#' @param alpha confidence level for the confidence intervals (see the documentation of `ppstat::termPlot`)
+#' @param trans transformation to apply (eg `exp` for a log-intensity) 
+#' (see the documentation of `ppstat::termPlot`)
 #'
 #' @return A dataframe with columns:
 #' 
-#' + `x` = time (delay)
-#' + `variable` = control variables (species from)
-#' + `value` = value of excitation function
-#' + `response` = response variable (species to)
+#' + `x`: the time
+#' + `variable`: response variable (species) 
+#' + `value`: interaction value 
+#' + `cf.lower`/`cf.upper`: confidence interval bounds
+#' + `response`: response variable
 #' 
 #' @export
-getPlotData <-function (model, ...){
+get_ppstat_interactions <- function(model, alpha = 0.05, trans = NULL) {
   
-  # 
-  # 
-
-  .local <- function(model, alpha = 0.05, layer = geom_line(), 
-                     trans = NULL, ...){
-    noFilterModels <- sapply(model@models, function(m) length(m@filterTerms) == 0)
-    if (all(noFilterModels)) {
-      print("No filter function terms to plot.")
-      return(invisible())
-    }
-    plotData <- lapply(model@models[!noFilterModels], function(model) {
-      pd <- my_getTermPlotData(model = model, alpha = alpha, 
-                               trans = trans, ...)
-      pd$response <- do.call(function(...) paste(..., sep = "+"), 
-                             as.list(model@response))
-      return(pd)
-    })
-    plotData <- do.call(rbind, plotData)
-    responseLevels <- sapply(model@models, function(m) m@response)
-    plotData$response <- factor(plotData$response, levels = responseLevels)
-    plotData$variable <- as.factor(plotData$variable)
-    allLevels <- unique(c(levels(plotData$response), levels(plotData$variable)))
-    variableLevels <- allLevels[allLevels %in% levels(plotData$variable)]
-    plotData$variable <- factor(plotData$variable, levels = variableLevels)
-    responseLevels <- allLevels[allLevels %in% levels(plotData$response)]
-    plotData$response <- factor(plotData$response, levels = responseLevels)
-    xLabel <- ppstat::processData(model@models[[1]])@positionVar
-    return(plotData)
-  }
-  .local(model, ...)
+  res <- lapply(model@models, function(model) {
+    pd <- ppstat:::getTermPlotData(model = model,
+                                   alpha = alpha, trans = trans)
+    pd$response <- ppstat:::response(model)
+    return(pd)
+  })
+  res <- do.call(rbind, res)
 }

@@ -23,7 +23,6 @@ Imports:
     pammtools,
     patchwork,
     ppstat,
-    reshape2,
     rlang,
     stats,
     stringr,

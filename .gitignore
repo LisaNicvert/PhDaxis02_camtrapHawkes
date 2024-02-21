@@ -9,4 +9,4 @@ figures/07_bins_width/binwidth_9_edited.svg
 figures/07_bins_width/binwidth_3_edited.svg
 outputs/08_ppstat/m_cov.rds
 outputs/08_ppstat/m_nocov.rds
-
+analyses/08_ppstat/mail/
