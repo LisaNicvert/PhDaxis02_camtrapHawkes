@@ -18,7 +18,7 @@ base::lapply(packages, require)
 thr_obs <- 1 # Discard cameras that have less than thr_obs captures
 thr_freq <- 1/30 # Discard cameras for which the mean frequency is less than thr_freq (day⁻¹)
 
-scale <- 10e6
+scale <- 10e4
 
 outputs_path <- here("outputs/05_example_real_data")
 
@@ -39,6 +39,13 @@ dat$datetime <- as.POSIXct(dat$datetime, format = fmt)
 dat$datetime <- force_tz(dat$datetime, tz = "Etc/GMT-2")
 
 ## 4.3 Add stamps ----------------------------------------------------------
+
+origin <- min(dat$datetime)
+hour(origin) <- 0
+minute(origin) <- 0
+second(origin) <- 0
+
+# dat <- add_stamps(dat, origin = origin)
 dat <- add_stamps(dat)
 dat$row_ID <- 1:nrow(dat)
 
