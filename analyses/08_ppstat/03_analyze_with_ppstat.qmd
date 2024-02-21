@@ -15,10 +15,10 @@ editor: source
 ```{r}
 #| code-fold: true
 #| message: false
-library(ppstat)
 library(here)
 library(lubridate)
 library(dplyr)
+library(ppstat)
 
 library(patchwork)
 library(ggtext)
@@ -26,25 +26,18 @@ library(scales)
 library(chron)
 
 library(camtrapHawkes)
-
-source(here("R/functions_ppstat.R"))
 ```
 
 ## Parameters
 
 ```{r}
-set.seed(42)
-
-# Misc
-ndays <- 1.5 # support of interaction function
-phi <- "log" # shape of excitation function
-
-# Splines basis
-Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
+# Model specification ---
+# Create continuous process
+hstep <- 3600 # in seconds
 
 # Species
 startknot_spp <- -0.5 # first knot (value chosen to place a knot on zero and improve inference stability , and in accordance with the pilot study of Carstensen et al 2010: in their study the first knot is placed at 0.4*range)
-endknot_spp <- ndays # last knot
+endknot_spp <- 1.5 # last knot
 by_spp <- 6/24 # knots spacing (in days) (~ in accordance with Carstensen et al 2010,
 # who have 8 knots from -400 to 1000)
 ord <- 4 # order of splines (degree <- ord-1)
@@ -52,21 +45,70 @@ trunc <- NULL # truncate? (avoid edge effects)
 
 # Hour
 startknot_hour <- 0
-endknot_hour <- 2*pi 
-by_hour <- (2/24)*2*pi
+endknot_hour <- 1 # 2*pi 
+by_hour <- 2/24  # (2/24)*2*pi
 ord_hour <- 4
-hstep <- 30*60 # in seconds
+
+# Inference parameters ---
+ndays <- endknot_spp # support of interaction function
+phi <- "log" # shape of excitation function
+
+# Splines basis
+Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
 perform_inference <- FALSE
 
-# Plot parameters
+# Plot parameters ---
 alpha_conf <- 0.7
+alpha <- 0.05
+trans <- "exp"
 
-# --- Figures
+yintercept <- ifelse(is.null(trans),
+                     0, do.call(trans, list(0)))
+
+# Figures ---
 figures_path <- here("figures/08_ppstat")
 
 m_cov_file <- here("outputs/08_ppstat/m_cov.rds")
 m_nocov_file <- here("outputs/08_ppstat/m_nocov.rds")
+```
+
+```{r}
+#| code-fold: true
+
+# --- Silhouettes path
+silhouettes_path <- here("data/species_silhouettes/")
+silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path, 
+                          "impala.png'", " height='20'/>", 
+                          "<br>*impala*"),
+                      kudu = paste0("<img src='", silhouettes_path, 
+                                    "kudu.png'", " height='20'/>", 
+                                    "<br>*kudu*"),
+                      lion = paste0("<img src='", silhouettes_path, 
+                                    "lion.png'", " height='20'/>", 
+                                    "<br>*lion*"),
+                      wildebeestblue = paste0("<img src='", silhouettes_path, 
+                                              "wildebeest.png'", " height='20'/>",
+                                              "<br>*wildebeest*"),
+                      zebraburchells = paste0("<img src='", silhouettes_path, 
+                                              "zebra.png'", " height='20'/>",
+                                              "<br>*zebra*"))
+
+silhouettes_title <- c(impala = paste0("Impala <img src='", 
+                                       silhouettes_path, 
+                                       "impala.png'", " height='15'/>"),
+                      kudu = paste0("Kudu <img src='", silhouettes_path, 
+                                    "kudu.png'", " height='15'/>"),
+                      lion = paste0("Lion <img src='", silhouettes_path, 
+                                    "lion.png'", " height='15'/>"),
+                      wildebeestblue = paste0("Wildebeest <img src='",
+                                              silhouettes_path, 
+                                              "wildebeest.png'",
+                                              " height='15'/>"),
+                      zebraburchells = paste0("Zebra <img src='", 
+                                              silhouettes_path, 
+                                              "zebra.png'", 
+                                              " height='15'/>"))
 ```
 
 ## Read data
@@ -81,6 +123,21 @@ dat$datetime <- force_tz(dat$datetime, tz = "Etc/GMT-2")
 
 # Remove observation 37904 (one datetime without hour)
 dat <- dat |> filter(!is.na(datetime))
+
+# # DEBUG code
+# 
+# # dat <- dat |>
+# #   dplyr::filter(cameraID %in% c("SA_01",
+# #                                 "SC_01",
+# #                                 "SF_01")) # |>
+# #   # dplyr::filter(stamp > 200 & stamp < 500)
+# 
+# dat <- dat |>
+#   dplyr::filter(locationID == "SA") |> 
+#   filter(snapshotName != "lion")
+# 
+# ggplot(dat) +
+#   geom_point(aes(x = datetime, y = cameraID, col = snapshotName))
 ```
 
 
@@ -120,6 +177,10 @@ dat_ppstat <- dat |>
   rename("time" = "stamp") |> 
   rename("id" = "cameraID")
 
+# Round stamps
+dat_ppstat <- dat_ppstat |> 
+  mutate(time = signif(time, 6))
+
 dat_ppstat$snapshotName <- factor(dat_ppstat$snapshotName)
 dat_ppstat$id <- factor(dat_ppstat$id)
 
@@ -133,55 +194,138 @@ df_hour <- data.frame()
 
 for (i in 1:nrow(dat_ppstat_hour)) {
   row <- dat_ppstat_hour[i, ]
-  dateseq <- seq(row$min - lubridate::ddays(1), row$max + lubridate::ddays(1), by = hstep)
-  df_hour <- rbind(df_hour, data.frame(cameraID = row$id, datetime = dateseq))
+  
+  # Select corresponding event times
+  event_times <- dat_ppstat |>
+    dplyr::filter(id == row$id)
+  event_times <- event_times$datetime
+  
+  # Define first step at rounded hour
+  minrow <- row$min
+  minute(minrow) <- 0
+  second(minrow) <- 0
+  
+  # Define last step at rounded hour (bigger than hstep)
+  maxrow <- row$max
+  hour(maxrow) <- hour(maxrow) + ceiling(hstep/3600)
+  minute(maxrow) <- 0
+  second(maxrow) <- 0
+
+  dateseq <- seq(minrow, maxrow, by = hstep)
+  
+  # Add point times
+  datefull <- c(dateseq, event_times)
+  datefull <- sort(unique(datefull))
+  
+  df_hour <- rbind(df_hour, data.frame(cameraID = row$id, datetime = datefull))
 }
 
+origin <- as.POSIXct("2017-06-29")
+origin <- force_tz(origin, tz = "Etc/GMT-2")
+
 df_hour <- df_hour |> 
-  mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24) |> 
-  add_stamps() 
+  add_stamps(origin = origin) |>
+  mutate(hour = (hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
+  # mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
+  
+
 df_hour <- df_hour |> 
   rename("id" = "cameraID",
          "time" = "stamp")
 
-hour <- df_hour[, c("id", "hour", "time")]
-p_hour <- continuousProcess(hour,
+# Round stamps
+df_hour <- df_hour |> 
+  mutate(time = signif(time, 6))
+
+df_hour <- df_hour[, c("id", "time", "hour")]
+p_hour <- continuousProcess(df_hour,
                             positionVar = 'time',
                             valueVar = 'hour',
                             idVar = 'id')
+# # For debugging
+# id <- getId(p_hour)
+# t <- getTime(p_hour)
+# h <- getColumns(p_hour, 1)
+# df_p_hour <- data.frame(id, t, h)
 
 # Create marked point process with species occurrences
-dat_ppstat <- dat_ppstat[, c("id", "snapshotName", "time")]
-      
+dat_ppstat <- dat_ppstat[, c("id", "time", "snapshotName")]
+
 p <- markedPointProcess(pointData = dat_ppstat,
-                        continuousData = dat_ppstat$time,
                         idVar = 'id',
                         positionVar = 'time',
                         markVar = "snapshotName")
 
 pcov <- markedPointProcess(pointData = dat_ppstat,
-                           continuousData = p_hour,
-                           positionVar = 'time',
                            idVar = 'id',
-                           value = "hour",
-                           markVar = "snapshotName")
+                           positionVar = 'time',
+                           markVar = "snapshotName",
+                           continuousData = p_hour,
+                           value = "hour")
+# # For debugging
+# id <- getId(pcov)
+# t <- getTime(pcov)
+# h <- getColumns(pcov, 1)
+# df_pcov <- data.frame(id, t, h)
 ```
 
 ```{r}
-plot(p["SC_05", ])
-plot(pcov["SC_05",])
+plot(subset(p, subset = (id %in% c("SA_01", "SA_02"))))
+# plot(p)
+summary(p)
+
+plot(subset(pcov, subset = (id %in% c("SA_01", "SA_02"))))
+# plot(pcov)
+summary(pcov)
+
+# # For debugging
+# min <- 1
+# max <- 30
+# h <- getColumns(pcov, 1)[min:max]
+# t <- getTime(pcov)[min:max]
+# id <- getId(pcov)[min:max]
+# 
+# dftest <- data.frame(h, t, id)
+```
+
+
+```{r}
+# DEBUG code
+
+# Bad
+# plot(p_hour) +
+#   scale_x_continuous(limits = c(0, 20), breaks = seq(0, 20, by = 1))
+# 
+# # Good
+# plot(subset(p_hour, subset = (time < 20))) +
+#   scale_x_continuous(breaks = seq(0, 20, by = 1))
+# 
+# ggplot(df_hour, aes(y = hour, x = time)) + 
+#   geom_line() +
+#   facet_grid(rows = vars(id)) +
+#   xlim(7, 20)
+# 
+# # Check with 3 data
+# plot(subset(p_hour, subset = (time < 510 & time > 500))) +
+#   scale_x_continuous(breaks = seq(500, 510, by = 1))
+# 
+# ggplot(df_hour, aes(y = hour, x = time)) + 
+#   geom_line() +
+#   facet_grid(rows = vars(id)) +
+#   xlim(500, 510)
+
+# plot(pcov)
+# plot(subset(pcov, subset = (time < 510 & time > 500)))
 ```
 
 ```{r}
 rm(df_hour)
-rm(hour)
 rm(dat_ppstat)
 rm(dat_ppstat_hour)
 ```
 
 
 ## Inference
-
 
 ```{r}
 if (perform_inference) {
@@ -202,59 +346,30 @@ if (perform_inference) {
   m_cov <- readRDS(m_cov_file)
   m_nocov <- readRDS(m_nocov_file)
 }
-
 ```
 
 ## Plot
 
-```{r}
-alpha <- 0.05
-trans <- "exp"
-
-yintercept <- ifelse(is.null(trans),
-                     0, do.call(trans, list(0)))
-```
-
-```{r}
-#| code-fold: true
-# --- Silhouettes path
-silhouettes_path <- here("data/species_silhouettes/")
-silhouettes_labs <- c(impala = paste0("<img src='", silhouettes_path, 
-                          "impala.png'", " height='20'/>", 
-                          "<br>*impala*"),
-                      kudu = paste0("<img src='", silhouettes_path, 
-                                    "kudu.png'", " height='20'/>", 
-                                    "<br>*kudu*"),
-                      lion = paste0("<img src='", silhouettes_path, 
-                                    "lion.png'", " height='20'/>", 
-                                    "<br>*lion*"),
-                      wildebeestblue = paste0("<img src='", silhouettes_path, 
-                                              "wildebeest.png'", " height='20'/>",
-                                              "<br>*wildebeest*"),
-                      zebraburchells = paste0("<img src='", silhouettes_path, 
-                                              "zebra.png'", " height='20'/>",
-                                              "<br>*zebra*"))
-```
-
 ### Model with no covariates
 
-
-
 ```{r}
-mod_df <- getPlotData(m_nocov, alpha = 0.05, trans = trans)
+mod_df <- get_ppstat_interactions(m_nocov, 
+                                  trans = trans,
+                                  alpha = alpha)
 ```
+
 
 ```{r, fig.width=8, fig.height=6}
 #| code-fold: true
-mod_df2 <- mod_df |> 
+mod_df2 <- mod_df |>
   rename("time" = "x",
          "excitefunc" = "value",
          "to" = "response",
-         "from" = "variable") |> 
+         "from" = "variable") |>
   mutate(from = as.character(from),
          to = as.character(to))
 
-ymax <- 3
+ymax <- 2
 plot_interactions(mod_df2, 
                   scale = "hours",
                   silhouettes = silhouettes_labs,
@@ -264,8 +379,11 @@ plot_interactions(mod_df2,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line")# +
-  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
+                  line_geom = "line") +
+  scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
+
+# Equivalent to 
+# termPlot(m_nocov, trans = "exp")
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
@@ -328,7 +446,9 @@ ggsave(file.path(figures_path, "background_rates_nocov.jpeg"),
 ### Model with covariates
 
 ```{r}
-mod_df_cov <- getPlotData(m_cov, alpha = 0.05, trans = trans)
+mod_df_cov <- get_ppstat_interactions(m_cov, 
+                                      trans = trans,
+                                      alpha = alpha)
 ```
 
 ```{r, fig.height=6, fig.width=8}
@@ -351,8 +471,8 @@ plot_interactions(mod_df_cov2,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line") #+
-  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
+                  line_geom = "line") +
+  scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_cov.jpeg"),
@@ -366,11 +486,16 @@ Compute the spline transformation of the circular time.
 
 ```{r hour_model, echo = FALSE}
 # Construct a time vector for which to predict values
-step_th <- 0.02
-phour <- seq(0, 2*pi, by = step_th)
+# step_th <- 0.02
+# phour <- seq(0, 2*pi, by = step_th)
+step_th <- 0.001
+phour <- seq(0, 1, by = step_th)
 
-# We can convert this to the hours of the days from radians
-hour <- phour/(2*pi)*24
+# # We can convert this to the hours of the days from radians
+# hour <- phour/(2*pi)*24
+
+# We can convert this to the hours of the days from [0, 1]
+hour <- phour*24
 
 # Construct spline basis functions matrix evaluated along time vector
 bhr <- bSpline(x = phour,
@@ -458,28 +583,9 @@ coef_spont2 <- coef_spont |>
          "to" = "species") |> 
   mutate(to = as.character(to))
 
-# plot_background_rate(coef_spont2,
-#                      silhouettes = silhouettes_labs,
-#                      confint = c("lower", "upper"))
-```
-
-```{r}
-#| code-fold: true
-silhouettes_title <- c(impala = paste0("Impala <img src='", 
-                                       silhouettes_path, 
-                                       "impala.png'", " height='15'/>"),
-                      kudu = paste0("Kudu <img src='", silhouettes_path, 
-                                    "kudu.png'", " height='15'/>"),
-                      lion = paste0("Lion <img src='", silhouettes_path, 
-                                    "lion.png'", " height='15'/>"),
-                      wildebeestblue = paste0("Wildebeest <img src='",
-                                              silhouettes_path, 
-                                              "wildebeest.png'",
-                                              " height='15'/>"),
-                      zebraburchells = paste0("Zebra <img src='", 
-                                              silhouettes_path, 
-                                              "zebra.png'", 
-                                              " height='15'/>"))
+plot_background_rate(coef_spont2,
+                     # silhouettes = silhouettes_labs,
+                     confint = c("lower", "upper"))
 ```
 
 ```{r plot_circadian}
@@ -510,7 +616,7 @@ for(s in species_list){
                                         size = textsize*1.4),
           axis.title = element_text(size = textsize*1.2))
   
-  if (s == species_list[[1]] | s == species_list[[4]]) { # Keep y axis for first plot of the line
+  if (s == species_list[[1]] | s == species_list[[length(species_list)-1]]) { # Keep y axis for first plot of the line
     g <- g + 
       ylab(expression(paste("Background rate (", day^{-1}, ")")))
   } else { # Remove y axis for all plots except first one
@@ -520,7 +626,7 @@ for(s in species_list){
             axis.ticks.y = element_blank())
   }
   
-  if (s == species_list[[4]] | s == species_list[[5]]) { # Add x lab
+  if (s == species_list[[length(species_list)-1]] | s == species_list[[length(species_list)]]) { # Add x lab
     g <- g + xlab("Time of the day")
   } else {
     g <- g +
@@ -534,7 +640,6 @@ for(s in species_list){
 
 ```{r print_plot, fig.width=6, fig.height=4}
 #| code-fold: true
-
 
 ymax <- max(df_hour_coef$upper)
 
@@ -564,7 +669,7 @@ ggplot(dat_h) +
   scale_x_continuous(breaks = seq(0, 24, by = 4)) +
   facet_wrap(vars(snapshotName), 
              labeller = as_labeller(silhouettes_labs),
-             ncol = 3) +
+             nrow = 2) +
   theme_linedraw() +
   ggtitle("Species observed circadian rhythms") +
   ylab("Density") +
