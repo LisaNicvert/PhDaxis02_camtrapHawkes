@@ -41,7 +41,6 @@ set.seed(42)
 # Model ------
 nspecies <- 5
 
-
 duration_days <- 2 # interaction function support (A in ppstat framework)
 stepfunc <- 0.005
 
@@ -58,7 +57,7 @@ nrep_each <- 100 # repeat each simulation x times
 
 # Inference parameters ---
 # Inference
-ndays <- 1.5 # support of interaction function
+ndays <- duration_days # support of interaction function
 phi <- "log" # shape of excitation function
 
 # Model
@@ -304,7 +303,8 @@ if (perform_inference) {
                            support = ndays)
     
     # Transform model
-    mod_df <- getPlotData(m, alpha = 0.05, trans = trans)
+    mod_df <- get_ppstat_interactions(m, 
+                                      alpha = 0.05, trans = trans)
     
     # Change variables names
     mod_df <- mod_df |> 
@@ -328,7 +328,6 @@ if (perform_inference) {
 } else {
   infer_list <- readRDS(inference_file)
 }
-
 ```
 
 ## Check inferred parameters values
