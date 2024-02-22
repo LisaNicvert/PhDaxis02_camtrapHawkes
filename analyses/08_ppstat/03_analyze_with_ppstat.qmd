@@ -45,8 +45,8 @@ trunc <- NULL # truncate? (avoid edge effects)
 
 # Hour
 startknot_hour <- 0
-endknot_hour <- 1 # 2*pi 
-by_hour <- 2/24  # (2/24)*2*pi
+endknot_hour <- 1
+by_hour <- 2/24
 ord_hour <- 4
 
 # Inference parameters ---
@@ -123,21 +123,6 @@ dat$datetime <- force_tz(dat$datetime, tz = "Etc/GMT-2")
 
 # Remove observation 37904 (one datetime without hour)
 dat <- dat |> filter(!is.na(datetime))
-
-# # DEBUG code
-# 
-# # dat <- dat |>
-# #   dplyr::filter(cameraID %in% c("SA_01",
-# #                                 "SC_01",
-# #                                 "SF_01")) # |>
-# #   # dplyr::filter(stamp > 200 & stamp < 500)
-# 
-# dat <- dat |>
-#   dplyr::filter(locationID == "SA") |> 
-#   filter(snapshotName != "lion")
-# 
-# ggplot(dat) +
-#   geom_point(aes(x = datetime, y = cameraID, col = snapshotName))
 ```
 
 
@@ -226,8 +211,6 @@ origin <- force_tz(origin, tz = "Etc/GMT-2")
 df_hour <- df_hour |> 
   add_stamps(origin = origin) |>
   mutate(hour = (hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
-  # mutate(hour = 2*pi*(hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
-  
 
 df_hour <- df_hour |> 
   rename("id" = "cameraID",
@@ -242,11 +225,6 @@ p_hour <- continuousProcess(df_hour,
                             positionVar = 'time',
                             valueVar = 'hour',
                             idVar = 'id')
-# # For debugging
-# id <- getId(p_hour)
-# t <- getTime(p_hour)
-# h <- getColumns(p_hour, 1)
-# df_p_hour <- data.frame(id, t, h)
 
 # Create marked point process with species occurrences
 dat_ppstat <- dat_ppstat[, c("id", "time", "snapshotName")]
@@ -262,60 +240,14 @@ pcov <- markedPointProcess(pointData = dat_ppstat,
                            markVar = "snapshotName",
                            continuousData = p_hour,
                            value = "hour")
-# # For debugging
-# id <- getId(pcov)
-# t <- getTime(pcov)
-# h <- getColumns(pcov, 1)
-# df_pcov <- data.frame(id, t, h)
 ```
 
 ```{r}
 plot(subset(p, subset = (id %in% c("SA_01", "SA_02"))))
-# plot(p)
-summary(p)
+# summary(p)
 
 plot(subset(pcov, subset = (id %in% c("SA_01", "SA_02"))))
-# plot(pcov)
-summary(pcov)
-
-# # For debugging
-# min <- 1
-# max <- 30
-# h <- getColumns(pcov, 1)[min:max]
-# t <- getTime(pcov)[min:max]
-# id <- getId(pcov)[min:max]
-# 
-# dftest <- data.frame(h, t, id)
-```
-
-
-```{r}
-# DEBUG code
-
-# Bad
-# plot(p_hour) +
-#   scale_x_continuous(limits = c(0, 20), breaks = seq(0, 20, by = 1))
-# 
-# # Good
-# plot(subset(p_hour, subset = (time < 20))) +
-#   scale_x_continuous(breaks = seq(0, 20, by = 1))
-# 
-# ggplot(df_hour, aes(y = hour, x = time)) + 
-#   geom_line() +
-#   facet_grid(rows = vars(id)) +
-#   xlim(7, 20)
-# 
-# # Check with 3 data
-# plot(subset(p_hour, subset = (time < 510 & time > 500))) +
-#   scale_x_continuous(breaks = seq(500, 510, by = 1))
-# 
-# ggplot(df_hour, aes(y = hour, x = time)) + 
-#   geom_line() +
-#   facet_grid(rows = vars(id)) +
-#   xlim(500, 510)
-
-# plot(pcov)
-# plot(subset(pcov, subset = (time < 510 & time > 500)))
+# summary(pcov)
 ```
 
 ```{r}
@@ -381,9 +313,6 @@ plot_interactions(mod_df2,
                   alpha_conf = alpha_conf,
                   line_geom = "line") +
   scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
-
-# Equivalent to 
-# termPlot(m_nocov, trans = "exp")
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
@@ -486,24 +415,19 @@ Compute the spline transformation of the circular time.
 
 ```{r hour_model, echo = FALSE}
 # Construct a time vector for which to predict values
-# step_th <- 0.02
-# phour <- seq(0, 2*pi, by = step_th)
 step_th <- 0.001
 phour <- seq(0, 1, by = step_th)
-
-# # We can convert this to the hours of the days from radians
-# hour <- phour/(2*pi)*24
 
 # We can convert this to the hours of the days from [0, 1]
 hour <- phour*24
 
 # Construct spline basis functions matrix evaluated along time vector
 bhr <- bSpline(x = phour,
-             knots = seq(startknot_hour, 
-                         endknot_hour, 
-                         by = by_hour),
-             ord = ord_hour,
-             sym = TRUE)
+               knots = seq(startknot_hour, 
+                           endknot_hour, 
+                           by = by_hour),
+               ord = ord_hour,
+               sym = TRUE)
 
 # Normalising splines basis
 cs <- sqrt(apply(bhr^2, 2, sum)*by_hour)
@@ -559,6 +483,7 @@ for(i in 1:length(species_list)){
   vec1 <- rep(1, nrow(bhr))
   bhr1 <- cbind(vec1, bhr)
   estimate <- bhr1 %*% sub_coef$coef
+  
   lower <- bhr1 %*% sub_coef$lower
   upper <- bhr1 %*% sub_coef$upper
   
@@ -576,7 +501,7 @@ for(i in 1:length(species_list)){
 }
 ```
 
-```{r, include=FALSE, eval=FALSE}
+```{r}
 #| code-fold: true
 coef_spont2 <- coef_spont |> 
   rename("spont" = "coef",
