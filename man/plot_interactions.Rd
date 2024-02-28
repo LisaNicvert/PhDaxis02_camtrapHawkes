@@ -16,6 +16,7 @@ plot_interactions(
   linesize = 0.5,
   line_geom = c("step", "line"),
   confint = NULL,
+  scales = "fixed",
   col_conf = "cornflowerblue",
   col_baseline = "black",
   alpha_conf = 0.7,
@@ -59,6 +60,10 @@ markdown codes containing a <img src='pato_to_image'/> element.}
 use this argument. The first element is the name of the column containing the lowest bound 
 of the confidence interval and the second element is the highest bound.
 If `NULL` (the default) no confidence interval is plotted.}
+
+\item{scales}{Scale parameter for `facet_grid`. Defaults to `fixed` (fixed scales), see
+the documentation of `ggplot2::facet_grid` for more information. Only used for the inter-species 
+interactions (in case `separate_self = TRUE`).}
 
 \item{col_conf}{Color of the confidence interval}
 

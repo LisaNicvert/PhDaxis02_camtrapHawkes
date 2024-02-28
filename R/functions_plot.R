@@ -44,6 +44,9 @@
 #' @param col_conf Color of the confidence interval
 #' @param alpha_conf Transparency of the confidence interval
 #' @param col_baseline Color of the line used to show the baseline
+#' @param scales Scale parameter for `facet_grid`. Defaults to `fixed` (fixed scales), see
+#' the documentation of `ggplot2::facet_grid` for more information. Only used for the inter-species 
+#' interactions (in case `separate_self = TRUE`).
 #'
 #' @return ggplot object, a plot with the pairwise interaction functions between species.
 #' @export
@@ -58,6 +61,7 @@ plot_interactions <- function(ue_df,
                               linesize = .5, 
                               line_geom = c("step", "line"),
                               confint = NULL,
+                              scales = "fixed",
                               col_conf = "cornflowerblue",
                               col_baseline = "black",
                               alpha_conf = 0.7,
@@ -207,6 +211,7 @@ plot_interactions <- function(ue_df,
       facet_grid(rows = vars(to),
                  cols = vars(from),
                  labeller = as_labeller(silhouettes),
+                 scales = scales,
                  switch = "y") +
       theme(strip.text.x = element_markdown(color = "black", 
                                             size = textsize),
@@ -232,6 +237,7 @@ plot_interactions <- function(ue_df,
     g <- g +
       facet_grid(rows = vars(to),
                  cols = vars(from),
+                 scales = scales,
                  switch = "y") +
       theme(strip.text = element_text(size = textsize,
                                       color = "black"),
