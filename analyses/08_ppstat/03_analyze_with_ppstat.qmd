@@ -24,6 +24,7 @@ library(patchwork)
 library(ggtext)
 library(scales)
 library(chron)
+library(activity) # for solartimes
 
 library(camtrapHawkes)
 ```
@@ -44,8 +45,8 @@ ord <- 4 # order of splines (degree <- ord-1)
 trunc <- NULL # truncate? (avoid edge effects)
 
 # Hour
-startknot_hour <- 0
-endknot_hour <- 1
+startknot_hour <- -2/24
+endknot_hour <- 1 + 2/24
 by_hour <- 2/24
 ord_hour <- 4
 
@@ -56,7 +57,7 @@ phi <- "log" # shape of excitation function
 # Splines basis
 Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
-perform_inference <- FALSE
+perform_inference <- TRUE
 
 # Plot parameters ---
 alpha_conf <- 0.7
@@ -124,7 +125,6 @@ dat$datetime <- force_tz(dat$datetime, tz = "Etc/GMT-2")
 # Remove observation 37904 (one datetime without hour)
 dat <- dat |> filter(!is.na(datetime))
 ```
-
 
 ## Write equation
 
@@ -205,12 +205,21 @@ for (i in 1:nrow(dat_ppstat_hour)) {
   df_hour <- rbind(df_hour, data.frame(cameraID = row$id, datetime = datefull))
 }
 
+corrected_time <- activity::solartime(df_hour$datetime,
+                                      lon = 29.4893, # mean longitude
+                                      lat = -24.41412, # mean latitude
+                                      tz = 2)
+
+# Extract corrected solar times and convert them back to fractions of 1
+corrected_cov <- corrected_time$solar/(2*pi)
+df_hour$hour <- corrected_cov
+
 origin <- as.POSIXct("2017-06-29")
 origin <- force_tz(origin, tz = "Etc/GMT-2")
 
 df_hour <- df_hour |> 
-  add_stamps(origin = origin) |>
-  mutate(hour = (hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
+  add_stamps(origin = origin) # |>
+  # mutate(hour = (hour(datetime) + minute(datetime)/60 + second(datetime)/3600)/24)
 
 df_hour <- df_hour |> 
   rename("id" = "cameraID",
@@ -261,19 +270,30 @@ rm(dat_ppstat_hour)
 
 ```{r}
 if (perform_inference) {
-  m_cov <- pointProcessModel(as.formula(f_cov),
-                           data = pcov,
-                           family = ppstat::Hawkes(phi),
-                           N = Nbasis,
-                           support = ndays)
+  rtime <- system.time({
+    m_cov <- pointProcessModel(as.formula(f_cov),
+                             data = pcov,
+                             family = ppstat::Hawkes(phi),
+                             N = Nbasis,
+                             support = ndays)
+  })
+  message("The inference of the model with covariates took " ,
+        round(rtime[3]/60, 2), 
+        " minutes.")
   saveRDS(m_cov, m_cov_file)
-
-  m_nocov <- pointProcessModel(as.formula(f_nocov),
-                               data = p,
-                               family = ppstat::Hawkes(phi),
-                               N = Nbasis,
-                               support = ndays)
+  
+  rtime <- system.time({
+    m_nocov <- pointProcessModel(as.formula(f_nocov),
+                                 data = p,
+                                 family = ppstat::Hawkes(phi),
+                                 N = Nbasis,
+                                 support = ndays)
+  })
+  message("The inference of the model without covariates took " ,
+        round(rtime[3]/60, 2), 
+        " minutes.")
   saveRDS(m_nocov, m_nocov_file)
+  
 } else {
   m_cov <- readRDS(m_cov_file)
   m_nocov <- readRDS(m_nocov_file)
@@ -291,7 +311,7 @@ mod_df <- get_ppstat_interactions(m_nocov,
 ```
 
 
-```{r, fig.width=8, fig.height=6}
+```{r, fig.width=8, fig.height=8}
 #| code-fold: true
 mod_df2 <- mod_df |>
   rename("time" = "x",
@@ -308,11 +328,13 @@ plot_interactions(mod_df2,
                   baseline = yintercept,
                   timestep = 12,
                   textsize = 11, 
+                  # scales = "free_y",
+                  # separate_self = TRUE,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line") +
-  scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
+                  line_geom = "line") # +
+  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
@@ -321,7 +343,6 @@ ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),
        dpi = 600,
        device = grDevices::jpeg)
 ```
-
 
 ```{r get_ppstat_coeffs_nocov, echo = FALSE}
 # Get species count
@@ -339,8 +360,7 @@ for(term in 1:nspp){
 # If trans is not null, transform all coeffs
 if(!is.null(trans)){
   coef_nocov[, c("coef", "lower", "upper")] <- do.call(trans, 
-                                                        list(coef_nocov[,
-                                                         c("coef", "lower", "upper")]))
+                                                       list(coef_nocov[, c("coef", "lower", "upper")]))
 }
 ```
 
@@ -361,13 +381,14 @@ coef_spont2 <- coef_spont |>
   mutate(to = as.character(to))
 
 plot_background_rate(coef_spont2,
+                     textsize = 11,
                      silhouettes = silhouettes_labs,
                      confint = c("lower", "upper"))
 
 # Export plot
 ggsave(file.path(figures_path, "background_rates_nocov.jpeg"),
        bg = "white",
-       width =  6, height = 4,
+       width = 8, height = 6,
        dpi = 600,
        device = grDevices::jpeg)
 ```
@@ -451,8 +472,7 @@ for(term in 1:nspp){
 # If trans is not null, transform all coeffs
 if(!is.null(trans)){
   coef_cov[, c("coef", "lower", "upper")] <- do.call(trans, 
-                                                        list(coef_cov[,
-                                                         c("coef", "lower", "upper")]))
+                                                     list(coef_cov[, c("coef", "lower", "upper")]))
 }
 ```
 
@@ -500,6 +520,7 @@ for(i in 1:length(species_list)){
   df_hour_coef <- bind_rows(df_hour_coef, df)
 }
 ```
+
 
 ```{r}
 #| code-fold: true
@@ -569,26 +590,35 @@ for(s in species_list){
 ymax <- max(df_hour_coef$upper)
 
 wrap_plots(glist, nrow = 2) + 
-  plot_layout(axis_titles = "collect") & 
+  plot_layout(axis_titles = "collect") &
   ylim(c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "background_rates_cov.jpeg"),
        bg = "white",
-       # width = 10, height = 3,
-       width = 6, height = 4,
+       width = 8, height = 6,
        dpi = 600,
        device = grDevices::jpeg)
 ```
 
+
+## Observed activity density
+
 Below, we plot the activity times of species:
 
 ```{r, fig.width = 6, fig.height = 5}
+corrected_time <- activity::solartime(dat$datetime,
+                                      lon = 29.4893, # mean longitude
+                                      lat = -24.41412, # mean latitude
+                                      tz = 2)
+
 dat_h <- dat |>
-  mutate(hour = chron::times(strftime(datetime,"%H:%M:%S")))
+  mutate(hour = corrected_time$solar*(24/(2*pi)))
+  # mutate(hour = chron::times(strftime(datetime,"%H:%M:%S")))
 
 ggplot(dat_h) + 
-  geom_density(aes(x = hour*24, group = snapshotName), 
+  geom_density(aes(x = hour, 
+                   group = snapshotName), 
                alpha = 0.5,
                show.legend = FALSE) + 
   scale_x_continuous(breaks = seq(0, 24, by = 4)) +
