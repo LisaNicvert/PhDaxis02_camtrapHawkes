@@ -155,22 +155,19 @@ write_formula <- function(spp,
 #' @export
 get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   
-  # Get model formula
+  # Get model formula for the given term
   mod.formula <- model@models[[term]]@formula
   
   # Get the index and then name of the response variable
   response.index <- attr(stats::terms(mod.formula), "response")
   response.spp <- all.vars(mod.formula)[response.index]
   
-  # Get model coefficients
-  coef <- model@models[[term]]@coefficients
-  
-  # Get coefficient table
+  # Get coefficient table for the model of the given term
   summ <- ppstat::summary(model)[[term]]$coefficients
+  
+  # Format coefficients table
   rnames <- names(rownames(summ))
-  
   rownames(summ) <- NULL
-  
   summ <- as.data.frame(summ)
   summ$coeff_id <- rnames
   
@@ -181,6 +178,7 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   
   # Get upper and lower bounds
   error <- summ$`Std. Error`
+  
   lower <- coef - e*error
   upper <- coef + e*error
   
@@ -188,7 +186,7 @@ get_ppstat_coeffs <- function(model, term, alpha = 0.05){
   coef_id <- summ$coeff_id
   
   # Response species
-  species <- rep(response.spp, n=length(lower))
+  species <- rep(response.spp, n = length(lower))
   
   res <- data.frame(coef_id, species, coef, lower, upper)
   
