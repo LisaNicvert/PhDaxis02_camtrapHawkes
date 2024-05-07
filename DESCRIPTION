@@ -4,7 +4,7 @@ Version: 1.1.0
 Authors@R: 
     person("Lisa", "Nicvert", , "lisa.nicvert@univ-lyon1.fr", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0006-5763-0865"))
-Description: Helper functions to infer a Hawkes process from camera trap data. This code relies heavily on the UnitEvents package (https://sourcesup.renater.fr/frs/?group_id=3267) for Hawkes process simulation and inference but implements helper functions for formatting and plotting.
+Description: Helper functions to infer a Hawkes process from camera trap data. This code relies heavily on the UnitEvents (https://sourcesup.renater.fr/frs/?group_id=3267) and ppstat (https://github.com/nielsrhansen/ppstat) packages for Hawkes process simulation and inference but implements helper functions for formatting and plotting.
 License: GPL (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = FALSE)

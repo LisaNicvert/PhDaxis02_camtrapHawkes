@@ -9,4 +9,4 @@
 ^install_dependencies\.R$
 ^README\.md$
 ^LICENSE\.md$
-^camtrapHawkes_1\.0\.0\.pdf$
+^camtrapHawkes_.*.pdf$
