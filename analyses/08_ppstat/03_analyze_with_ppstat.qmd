@@ -57,7 +57,7 @@ phi <- "log" # shape of excitation function
 # Splines basis
 Nbasis <- 200 # number of spline basis -> controls "bins width" together with knots
 
-perform_inference <- TRUE
+perform_inference <- FALSE
 
 # Plot parameters ---
 alpha_conf <- 0.7
@@ -333,8 +333,8 @@ plot_interactions(mod_df2,
                   confint = c("cf.lower", "cf.upper"),
                   col_baseline = "grey50",
                   alpha_conf = alpha_conf,
-                  line_geom = "line") # +
-  # scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
+                  line_geom = "line") +
+  scale_y_continuous(oob = scales::squish, limits = c(0, ymax))
 
 # Export plot
 ggsave(file.path(figures_path, "inference_ppstat_nocov.jpeg"),

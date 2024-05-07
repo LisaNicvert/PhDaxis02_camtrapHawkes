@@ -2,7 +2,7 @@
 
 This repository contains the code and data to reproduce the analyses and figures for my PhD axis using Hawkes processes to analyze camera trap data.
 
-It includes the code from Nicvert et al. (in press) (the standalone code for this article can also be found on [GitHub](https://github.com/LisaNicvert/camtrapHawkes) and is archived on [Figshare](https://doi.org/10.6084/m9.figshare.24552157.v3)).
+It includes the code from Nicvert et al. (2024) (the standalone code for this article can also be found on [GitHub](https://github.com/LisaNicvert/camtrapHawkes) and is archived on [Figshare](https://doi.org/10.6084/m9.figshare.24552157.v3)).
 
 The dataset published in this repository is a subset of the larger dataset described in Pardo et al. (2021) (see [data/camtrap_data/README.md](data/camtrap_data/README.md) for more details).
 
@@ -24,7 +24,7 @@ To run the analyses, you can install the packages via R (Linux and Mac OS users)
 -   `UnitEvents_0.0.8.tar.gz` is the source package for `UnitEvents`.
 -   `Dockerfile` is the file to create a Docker environment.
 
-## Packages installation (ppstat to add)
+## Packages installation
 
 In order to install the environment needed to run the analyses, you have two choices:
 
@@ -210,6 +210,6 @@ loaded via a namespace (and not attached):
 
 Albert, M., Bouret, Y., Chevallier, J., Fromont, M., Grammont, F., Laloe, T., Mascart, C., Reynaud-Bouret, P., Rouis, A., Scarella, G., & Tuleau-Malot, C. (2021). UnitEvents: Unitary Events Method with Delayed Coincidence Count (MTGAUE or Permutation Method) and Bernstein Lasso method for Hawkes processes. <https://sourcesup.renater.fr/frs/?group_id=3267>
 
-Nicvert, L., S. Donnet, M. Keith, M. Peel, M. J. Somers, L. H. Swanepoel, J. Venter, H. Fritz, and S. Dray. in press. Using the Multivariate Hawkes Process to Study Interactions between Multiple Species from Camera Trap Data. Ecology.
+Nicvert, L., S. Donnet, M. Keith, M. Peel, M. J. Somers, L. H. Swanepoel, J. Venter, H. Fritz, and S. Dray. 2024. Using the Multivariate Hawkes Process to Study Interactions between Multiple Species from Camera Trap Data. Ecology. https://doi.org/10.1002/ecy.4237
 
 Pardo, L. E., S. P. Bombaci, S. Huebner, M. J. Somers, H. Fritz, C. Downs, A. Guthmann, R. S. Hetem, M. Keith, A. le Roux, N. Mgqatsa, C. Packer, M. S. Palmer, D. M. Parker, M. Peel, R. Slotow, W. M. Strauss, L. Swanepoel, C. Tambling, N. Tsie, M. Vermeulen, M. Willi, D. S. Jachowski, and J. A. Venter. 2021. Snapshot Safari: a large-scale collaborative to monitor Africa’s remarkable biodiversity. South African Journal of Science **117**:1–4. <https://doi.org/10.17159/sajs.2021/8134>
