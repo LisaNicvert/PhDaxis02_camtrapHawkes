@@ -12,3 +12,4 @@ This subdirectory contains the output of the corresponding analyses found in `an
     -   `reserves/` contains the shapefiles for the reserves.
     -   `southern_africa/` contains the shapefiles for the countries borders.
 -   `05_example_real_data/` contains the cleaned data for the inference of a Hawkes process from camera trap data.
+-   `08_ppstat/` contains the outputs of the inference and simulation of non-linear multivariate Hawkes processes.
