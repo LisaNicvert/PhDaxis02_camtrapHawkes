@@ -13,7 +13,7 @@ For Quarto (.qmd) files, the html rendered version is also available. The differ
     -   `02_analyze_interevent_times.qmd` analyzes the results from the simulations.
 -   `03_simulation_hawkes/` contains the code to simulate data in different conditions and infer interactions with Hawkes processes. This code takes about 1 hour to run when `perform_simu` and `perform_inference` are set to `TRUE` (as in the default setting). This folder also contains some of the code run for Appendix S1: Section S1.
 -   `04_plot_map/` contains the code to plot the sites map.
--   `05_example_real_data/` contains the code to infer a Hawkes process from camera trap data. This folder also contains the code run for Appendix S1: Section S2.
+-   `05_example_real_data/` contains the code to infer a Hawkes process from camera trap data. This folder also contains the code run for Appendix S1: Section S2 and the code to reproduce the figure from the introduction of part 3 in the thesis (capture event barplot by species).
     -   `01_prepare_data.R` pre-processes the data
     -   `02_infer.qmd` infers the Hawkes process
 -   `06_circadian_rhythm/` contains the code to simulate camera trap data for species with circadian rhythms and infer a Hawkes process from those data (in Appendix S1: Section S3).
