@@ -502,7 +502,12 @@ for(i in 1:length(species_list)){
   
   vec1 <- rep(1, nrow(bhr))
   bhr1 <- cbind(vec1, bhr)
-  estimate <- bhr1 %*% sub_coef$coef
+  # estimate <- bhr1 %*% sub_coef$coef
+  
+  # We transpose to make it correspond with the model
+  # equation: transposed parameter vector multiplied
+  # by coefficient matrix
+  estimate <- t(t(sub_coef$coef) %*% t(bhr1))
   
   lower <- bhr1 %*% sub_coef$lower
   upper <- bhr1 %*% sub_coef$upper
