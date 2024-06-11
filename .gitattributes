@@ -2,3 +2,4 @@ data/camtrap_data/* linguist-vendored
 data/species_silhouettes/* linguist-vendored
 UnitEvents_0.0.8.tar.gz linguist-vendored
 analyses/*/*.html linguist-vendored
+outputs/*/* linguist-vendored
