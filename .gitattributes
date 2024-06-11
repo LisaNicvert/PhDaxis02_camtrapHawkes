@@ -1,2 +1,3 @@
 outputs/*/* linguist-vendored
 outputs/02_simulation_interevent_times/simu_interevents_cluster/* linguist-vendored
+analyses/*/*.html linguist-vendored
